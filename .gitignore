@@ -1,1 +1,15 @@
+.DS_Store
+Thumbs.db
 
+# secrets / env
+.env
+.env.*
+supabase.config.js
+firebase.config.js
+
+# logs
+*.log
+
+# build caches
+node_modules/
+dist/
