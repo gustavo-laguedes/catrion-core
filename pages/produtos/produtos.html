@@ -1,0 +1,475 @@
+<!-- pages/produtos/produtos.html -->
+<section class="products-page">
+  <div class="products-shell">
+
+    <header class="products-header">
+      <div class="left">
+        <h1>Produtos</h1>
+        <p class="muted">Cadastro, edição e movimentação de estoque</p>
+      </div>
+
+      <div class="right">
+        <button class="btn" id="btnNewProduct">+ Novo produto</button>
+        <button class="btn secondary" id="btnNewMovement">Movimentar estoque</button>
+      </div>
+    </header>
+
+    <div class="products-toolbar">
+      <input id="inpSearch" class="inp" placeholder="Buscar por nome ou SKU..." />
+      <select id="selStatus" class="inp">
+        <option value="all">Todos</option>
+        <option value="active">Ativos</option>
+        <option value="inactive">Inativos</option>
+      </select>
+      <select id="selStock" class="inp">
+        <option value="all">Estoque: todos</option>
+        <option value="low">Somente baixo</option>
+        <option value="zero">Somente zerado</option>
+      </select>
+    </div>
+
+    <div class="products-table-wrap">
+      <table class="products-table" id="tblProducts">
+        <thead>
+          <tr>
+  <th class="thumb-col">Foto</th>
+  <th data-sort="name">Nome</th>
+  <th data-sort="sku">SKU/Código</th>
+  <th data-sort="priceCents">Preço</th>
+  <th data-sort="costCents">Custo</th>
+  <th data-sort="profitPct">Lucro</th>
+  <th data-sort="stockOnHand">Estoque</th>
+    <th data-sort="unit">Unidade</th>
+  <th data-sort="status">Status</th>
+  <th class="actions">Ações</th>
+</tr>
+
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div class="empty muted" id="emptyState" hidden>
+        Nenhum produto encontrado.
+      </div>
+    </div>
+
+    <!-- MODAL: PRODUTO -->
+<dialog class="modal" id="dlgProduct">
+  <form method="dialog" class="modal-card" id="frmProduct">
+    <header class="modal-head">
+      <h2 id="dlgProductTitle">Novo produto</h2>
+      <button class="icon" type="submit" value="cancel" formnovalidate aria-label="Fechar">✕</button>
+    </header>
+
+<div class="modal-body grid">
+
+  <input type="hidden" id="prd_id" />
+
+  <!-- LINHA 1 -->
+  <label>
+    <span>Categoria</span>
+    <input id="prd_cat" class="inp" placeholder="Selecione..." readonly style="cursor:pointer;">
+  </label>
+
+  <label>
+    <span>Subcategoria</span>
+    <input id="prd_sub1" class="inp" placeholder="Selecione..." readonly style="cursor:pointer;">
+  </label>
+
+  <!-- LINHA 2 -->
+  <label>
+    <span>Subcategoria 1</span>
+    <input id="prd_sub2" class="inp" placeholder="Selecione..." readonly style="cursor:pointer;">
+  </label>
+
+  <label>
+    <span>Subcategoria 2</span>
+    <input id="prd_sub3" class="inp" placeholder="Selecione..." readonly style="cursor:pointer;">
+  </label>
+
+  <!-- LINHA 3 (full) -->
+  <label class="full">
+    <span>Nome (gerado automaticamente)</span>
+    <input class="inp" id="prd_name_gen" readonly />
+  </label>
+
+  <!-- LINHA 4 -->
+  <label>
+    <span>Unidade</span>
+    <select class="inp" id="prd_unit">
+      <option value="UN">Unidade (UN)</option>
+      <option value="KG">Quilo (KG)</option>
+      <option value="G">Grama (G)</option>
+      <option value="L">Litro (L)</option>
+      <option value="ML">Mililitro (ML)</option>
+      <option value="CX">Caixa (CX)</option>
+      <option value="PCT">Pacote (PCT)</option>
+      <option value="FD">Fardo (FD)</option>
+    </select>
+  </label>
+
+  <label>
+    <span>SKU / Código</span>
+    <input class="inp" id="prd_sku" />
+  </label>
+
+  <!-- LINHA 5 -->
+  <label>
+    <span>Preço (R$)</span>
+    <input class="inp" id="prd_price" inputmode="decimal" placeholder="0,00" required />
+  </label>
+
+  <label>
+    <span>Custo (R$) <em class="muted">(opcional)</em></span>
+    <input class="inp" id="prd_cost" inputmode="decimal" placeholder="0,00" />
+  </label>
+
+  <!-- LINHA 6 -->
+  <label>
+    <span>Estoque atual</span>
+    <input class="inp" id="prd_stockOnHand" inputmode="numeric" placeholder="0" required />
+  </label>
+
+  <label>
+    <span>Estoque mínimo</span>
+    <input class="inp" id="prd_stockMin" inputmode="numeric" placeholder="0" required />
+  </label>
+
+  <!-- LINHA 7 -->
+  <label>
+    <span>Status</span>
+    <select class="inp" id="prd_status">
+      <option value="active">Ativo</option>
+      <option value="inactive">Inativo</option>
+    </select>
+  </label>
+
+  <!-- Foto (coluna direita, centralizada) -->
+  <div class="photo-field" aria-label="Foto do produto">
+    <input type="file" id="prd_imageFile" accept="image/*" hidden />
+
+    <div class="photo-pick" id="prd_photoPick" title="Clique para escolher a foto">
+      <img id="prd_imagePreview" class="photo-img" alt="Foto do produto" />
+      <div id="prd_imageEmpty" class="photo-empty">IMG</div>
+      <button type="button" class="photo-x" id="prd_photoClear" aria-label="Remover foto" title="Remover foto">✕</button>
+    </div>
+
+    <input type="hidden" id="prd_imageData" />
+    <small class="err" data-err="imageData"></small>
+  </div>
+
+</div>
+
+
+
+    <footer class="modal-foot">
+  <button class="btn danger" type="button" id="btnDeleteProduct" hidden>Excluir</button>
+  <button class="btn secondary" type="submit" value="cancel" formnovalidate>Cancelar</button>
+  <button class="btn" id="btnSaveProduct" value="default">Salvar</button>
+</footer>
+
+  </form>
+</dialog>
+
+<!-- MODAL: VISUALIZAR / EDITAR PRODUTO -->
+<dialog class="modal" id="dlgProductView">
+  <form method="dialog" class="modal-card" id="frmProductView">
+    <header class="modal-head">
+      <h2>Produto</h2>
+      <button class="icon" type="submit" value="cancel" formnovalidate aria-label="Fechar">✕</button>
+    </header>
+
+    <div class="modal-body grid" id="pvGrid">
+
+  <input type="hidden" id="pv_id" />
+
+  <!-- LINHA 1 -->
+  <label>
+    <span>Categoria</span>
+    <input id="pv_cat" class="inp pv-inp" placeholder="Selecione..." readonly style="cursor:pointer;">
+  </label>
+
+  <label>
+    <span>Subcategoria</span>
+    <input id="pv_sub1" class="inp pv-inp" placeholder="Selecione..." readonly style="cursor:pointer;">
+  </label>
+
+  <!-- LINHA 2 -->
+  <label>
+    <span>Subcategoria 1</span>
+    <input id="pv_sub2" class="inp pv-inp" placeholder="Selecione..." readonly style="cursor:pointer;">
+  </label>
+
+  <label>
+    <span>Subcategoria 2</span>
+    <input id="pv_sub3" class="inp pv-inp" placeholder="Selecione..." readonly style="cursor:pointer;">
+  </label>
+
+  <!-- LINHA 3 (full) -->
+  <label class="full">
+    <span>Nome (gerado automaticamente)</span>
+    <input class="inp" id="pv_name_gen" readonly />
+  </label>
+
+  <!-- LINHA 4 -->
+  <label>
+    <span>Unidade</span>
+    <select class="inp pv-inp" id="pv_unit">
+      <option value="UN">Unidade (UN)</option>
+      <option value="KG">Quilo (KG)</option>
+      <option value="G">Grama (G)</option>
+      <option value="L">Litro (L)</option>
+      <option value="ML">Mililitro (ML)</option>
+      <option value="CX">Caixa (CX)</option>
+      <option value="PCT">Pacote (PCT)</option>
+      <option value="FD">Fardo (FD)</option>
+    </select>
+  </label>
+
+  <label>
+    <span>SKU / Código</span>
+    <input class="inp pv-inp" id="pv_sku" />
+  </label>
+
+  <!-- LINHA 5 -->
+  <label>
+    <span>Preço (R$)</span>
+    <input class="inp pv-inp" id="pv_price" inputmode="decimal" />
+  </label>
+
+  <label>
+    <span>Custo (R$)</span>
+    <input class="inp pv-inp" id="pv_cost" inputmode="decimal" />
+  </label>
+
+  <!-- LINHA 6 -->
+  <label>
+    <span>Estoque atual</span>
+    <input class="inp pv-inp" id="pv_stock" inputmode="numeric" />
+  </label>
+
+  <label>
+    <span>Estoque mínimo</span>
+    <input class="inp pv-inp" id="pv_min" inputmode="numeric" />
+  </label>
+
+  <!-- LINHA 7 -->
+  <label>
+    <span>Status</span>
+    <select class="inp pv-inp" id="pv_status">
+      <option value="active">Ativo</option>
+      <option value="inactive">Inativo</option>
+    </select>
+  </label>
+
+  <!-- Foto (coluna direita, centralizada) -->
+  <div class="photo-field" aria-label="Foto do produto">
+    <input type="file" id="pv_photoFile" accept="image/*" hidden />
+
+    <div class="pv-photoBox" id="pv_photoPick" title="Clique em Editar para alterar">
+      <img id="pv_photoImg" alt="Foto do produto" />
+      <div id="pv_photoEmpty" class="photo-empty">IMG</div>
+    </div>
+
+    <input type="hidden" id="pv_photoData" />
+  </div>
+
+</div>
+
+    <footer class="modal-foot">
+      <button class="btn danger" type="button" id="pv_btnDelete" hidden>Excluir</button>
+      <div class="spacer"></div>
+
+      <button class="btn secondary" type="button" id="pv_btnEdit">Editar</button>
+
+      <button class="btn secondary" type="submit" value="cancel" formnovalidate id="pv_btnClose">Fechar</button>
+
+      <button class="btn" id="pv_btnSave" value="default" hidden>Salvar</button>
+    </footer>
+  </form>
+</dialog>
+
+
+
+    <!-- MODAL: MOVIMENTAÇÃO (NOVO) -->
+<dialog class="modal" id="dlgMove">
+  <form method="dialog" class="modal-card" id="frmMove">
+    <header class="modal-head">
+      <h2>Movimentar estoque</h2>
+      <button class="icon" type="submit" value="cancel" formnovalidate aria-label="Fechar">✕</button>
+    </header>
+
+    <div class="modal-body" id="mvBody">
+      <!-- Tipo primeiro -->
+      <div class="mv-top">
+        <label>
+          <span>Tipo</span>
+          <select class="inp" id="mv_kind">
+            <option value="" selected>Selecione...</option>
+            <option value="PURCHASE">Compra</option>
+            <option value="LOSS">Perda</option>
+            <option value="ADJUST">Ajuste</option>
+          </select>
+        </label>
+      </div>
+
+      <p class="mv-hint" id="mv_hint">Selecione um tipo de movimentação para continuar.</p>
+
+      <datalist id="mv_products_list"></datalist>
+
+      <!-- ===== COMPRA ===== -->
+      <section class="mv-section" id="mv_purchase" hidden>
+        <div class="mv-card">
+          <div class="mv-row">
+            <label class="grow">
+  <span>Produto</span>
+  <div class="ac" data-ac="p">
+  <input class="inp" id="mv_p_query" placeholder="Digite nome ou SKU..." autocomplete="off" />
+  <div class="ac-menu" id="mv_p_menu" hidden></div>
+</div>
+
+</label>
+
+
+            <button type="button" class="btn" id="mv_p_add">Adicionar</button>
+          </div>
+
+          <div class="mv-items">
+            <div class="mv-items-head">
+              <div>Item</div>
+              <div>Qtd</div>
+              <div>Custo (R$)</div>
+              <div></div>
+            </div>
+
+            <div class="mv-items-list" id="mv_p_list">
+              <!-- itens entram aqui -->
+            </div>
+          </div>
+        </div>
+
+        <div class="mv-grid2">
+          <label>
+            <span>Nota fiscal</span>
+            <input class="inp" id="mv_p_nf" placeholder="Ex: 12345" />
+          </label>
+
+          <label>
+            <span>Fornecedor</span>
+            <input class="inp" id="mv_p_supplier" placeholder="Ex: Fornecedor X" />
+          </label>
+
+          <label>
+            <span>Data da compra</span>
+            <input class="inp" id="mv_p_date" type="date" />
+          </label>
+
+          <div class="mv-total">
+            <div class="mv-total-label">Total</div>
+            <div class="mv-total-value" id="mv_p_total">R$ 0,00</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PERDA ===== -->
+      <section class="mv-section" id="mv_loss" hidden>
+        <div class="mv-grid2">
+          <label>
+  <span>Produto</span>
+  <div class="ac" data-ac="l">
+  <input class="inp" id="mv_l_query" placeholder="Digite nome ou SKU..." autocomplete="off" />
+  <div class="ac-menu" id="mv_l_menu" hidden></div>
+</div>
+
+</label>
+
+
+          <label>
+            <span>Quantidade</span>
+            <input class="inp" id="mv_l_qty" inputmode="numeric" placeholder="0" />
+          </label>
+
+          <label>
+            <span>Data da perda</span>
+            <input class="inp" id="mv_l_date" type="date" />
+          </label>
+
+          <label class="full">
+            <span>Observação</span>
+            <input class="inp" id="mv_l_note" placeholder="Opcional" />
+          </label>
+        </div>
+      </section>
+
+      <!-- ===== AJUSTE ===== -->
+      <section class="mv-section" id="mv_adjust" hidden>
+        <div class="mv-grid2">
+          <label>
+  <span>Produto</span>
+  <div class="ac" data-ac="a">
+  <input class="inp" id="mv_a_query" placeholder="Digite nome ou SKU..." autocomplete="off" />
+  <div class="ac-menu" id="mv_a_menu" hidden></div>
+</div>
+
+</label>
+
+
+          <label>
+            <span>Estoque final</span>
+            <input class="inp" id="mv_a_final" inputmode="numeric" placeholder="0" />
+          </label>
+
+          <label>
+            <span>Data do ajuste</span>
+            <input class="inp" id="mv_a_date" type="date" />
+          </label>
+
+          <label class="full">
+            <span>Observação</span>
+            <input class="inp" id="mv_a_note" placeholder="Opcional" />
+          </label>
+        </div>
+      </section>
+    </div>
+
+    <footer class="modal-foot">
+      <div class="spacer"></div>
+      <button class="btn secondary" type="submit" value="cancel" formnovalidate>Cancelar</button>
+      <button class="btn" id="btnSaveMove" value="default">Aplicar</button>
+    </footer>
+  </form>
+</dialog>
+
+
+  </div>
+
+<!-- MODAL: SELETOR DE TAXONOMIA (Categoria/Subcategorias) -->
+<dialog class="modal" id="dlgTax">
+  <form method="dialog" class="modal-card tax-card" id="frmTax">
+    <header class="modal-head">
+      <h2 id="taxTitle">Selecionar</h2>
+      <button class="icon" type="submit" value="cancel" formnovalidate aria-label="Fechar">✕</button>
+    </header>
+
+    <div class="modal-body tax-body">
+      <input class="inp" id="taxSearch" placeholder="Buscar..." autocomplete="off" />
+
+      <div class="tax-list" id="taxList"></div>
+
+      <div class="tax-new">
+        <input class="inp" id="taxNewValue" placeholder="Novo valor..." autocomplete="off" />
+        <button class="btn" id="taxAdd" type="button">Adicionar</button>
+      </div>
+
+      <p class="muted mini">Dica: clique em um item para selecionar. Use “Adicionar” para criar um novo.</p>
+    </div>
+
+    <footer class="modal-foot">
+      <div class="spacer"></div>
+      <button class="btn secondary" type="submit" value="cancel" formnovalidate>Cancelar</button>
+    </footer>
+  </form>
+</dialog>
+
+
+</section>

@@ -1,0 +1,175 @@
+<div class="page-container">
+  <div class="page-scroll">
+    <div class="caixa-page">
+    <header class="caixa-header">
+      <div>
+        <h1>Caixa</h1>
+        <p class="muted">Abertura, fechamento, sangria, suprimento e log de eventos.</p>
+      </div>
+
+      <div class="caixa-actions">
+        <button class="btn" id="btnOpenCash">Abrir Caixa</button>
+        <button class="btn" id="btnCloseCash">Fechar Caixa</button>
+        <button class="btn" id="btnSupply">Suprimento</button>
+        <button class="btn danger" id="btnWithdraw">Sangria</button>
+      </div>
+    </header>
+
+    <section class="caixa-grid">
+      <div class="cash-card" id="cardStatus">
+        <div class="cash-card-title">Status</div>
+
+        <div class="status-row">
+          <div class="status-pill" id="cashStatusPill">—</div>
+          <div class="status-meta" id="cashStatusMeta">—</div>
+        </div>
+
+        <div class="status-kpis">
+          <div class="kpi">
+            <div class="kpi-label">Saldo inicial</div>
+            <div class="kpi-value" id="kpiInitial">R$ 0,00</div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi-label">Dinheiro teórico</div>
+            <div class="kpi-value" id="kpiTheoCash">R$ 0,00</div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi-label">Vendas (qtd)</div>
+            <div class="kpi-value" id="kpiSalesCount">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cash-card" id="cardResumo">
+        <div class="cash-card-title">Resumo por pagamento</div>
+
+        <div class="pay-grid">
+          <div class="pay-item">
+            <div class="pay-label">Dinheiro</div>
+            <div class="pay-value" id="sumCash">R$ 0,00</div>
+          </div>
+
+          <div class="pay-item">
+            <div class="pay-label">Pix</div>
+            <div class="pay-value" id="sumPix">R$ 0,00</div>
+          </div>
+
+          <div class="pay-item">
+            <div class="pay-label">Crédito</div>
+            <div class="pay-value" id="sumCredit">R$ 0,00</div>
+          </div>
+
+          <div class="pay-item">
+            <div class="pay-label">Débito</div>
+            <div class="pay-value" id="sumDebit">R$ 0,00</div>
+          </div>
+        </div>
+
+        <div class="muted small" id="sumObs">—</div>
+      </div>
+
+      <div class="cash-card full" id="cardLucro">
+        <div class="cash-card-title">Lucro (baseado no custo)</div>
+        <div class="profit-row">
+          <div class="profit-main">
+            <div class="profit-value" id="profitValue">R$ 0,00</div>
+            <div class="muted small" id="profitHint">Para calcular o lucro, a Venda precisa enviar o custo total (costTotal) ao registrar a venda.</div>
+          </div>
+          <div class="profit-pill" id="profitPct">0%</div>
+        </div>
+      </div>
+
+      <div class="cash-card full" id="cardEventos">
+  <div class="events-head">
+  <div class="cash-card-title">Eventos</div>
+
+  <div class="events-tools">
+    <input type="date" id="eventsDate" class="events-date">
+    <button class="btn" id="btnEventsToday">Hoje</button>
+    <button class="btn" id="btnEventsEdit">Editar</button>
+  </div>
+</div>
+
+  <div class="events-list" id="eventsList"></div>
+</div>
+
+    </section>
+
+    <!-- Modal simples -->
+    <div class="core-modal-backdrop hidden" id="cashModalBackdrop">
+      <div class="core-modal" role="dialog" aria-modal="true" aria-labelledby="cashModalTitle">
+        <div class="core-modal-head">
+          <div class="core-modal-title" id="cashModalTitle">—</div>
+          <button class="btn icon" id="cashModalClose" aria-label="Fechar">✕</button>
+        </div>
+
+        <div class="core-modal-body">
+          <label class="field">
+            <span>Valor (R$)</span>
+            <input type="number" step="0.01" id="cashModalValue" placeholder="0,00" />
+          </label>
+
+          <label class="field">
+            <span>Observação</span>
+            <input type="text" id="cashModalNotes" placeholder="Opcional" />
+          </label>
+
+          <div class="modal-actions">
+            <button class="btn" id="cashModalCancel">Cancelar</button>
+            <button class="btn primary" id="cashModalConfirm">Confirmar</button>
+          </div>
+
+
+          <div class="muted small" id="cashModalHint"></div>
+        </div>
+      </div>
+    </div>
+
+        <div class="core-modal-backdrop hidden" id="adminBackdrop">
+  <div class="core-modal" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+    <div class="core-modal-head">
+      <div class="core-modal-title" id="adminTitle">Modo edição (admin)</div>
+      <button class="btn icon" id="adminClose" aria-label="Fechar">✕</button>
+    </div>
+
+    <div class="core-modal-body">
+      <label class="field">
+        <span>Senha do administrador</span>
+        <input type="password" id="adminPass" placeholder="••••••••" />
+      </label>
+
+      <div class="modal-actions">
+        <button class="btn" id="adminCancel">Cancelar</button>
+        <button class="btn primary" id="adminConfirm">Confirmar</button>
+      </div>
+
+      <div class="muted small" id="adminHint">Ao atualizar a página, o modo edição será desativado.</div>
+    </div>
+  </div>
+</div>
+
+<div class="core-modal-backdrop hidden" id="saleViewBackdrop">
+  <div class="core-modal sale-view" role="dialog" aria-modal="true" aria-labelledby="saleViewTitle">
+    <div class="core-modal-head">
+      <div class="core-modal-title" id="saleViewTitle">Detalhes da venda</div>
+      <button class="btn icon" id="saleViewClose" aria-label="Fechar">✕</button>
+    </div>
+
+    <div class="core-modal-body">
+      <div id="saleViewBody"></div>
+
+      <div class="modal-actions">
+  <button class="btn" id="saleViewPrint">Imprimir</button>
+  <button class="btn" id="saleViewOk">Fechar</button>
+</div>
+
+    </div>
+  </div>
+</div>
+
+
+  </div>
+</div>
+</div>

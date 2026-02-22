@@ -1,0 +1,38 @@
+/* ==========================
+   Core POS - Default Theme (Light / Lúdico)
+   ========================== */
+
+:root{
+  /* Backgrounds */
+  --bg: #e5e7eb;        /* cinza claro principal */
+  --bg-2: #dfe3ea;     /* variação de fundo */
+
+  /* Panels / Cards */
+  --panel: #ffffff;
+  --panel-2: #f8f9fc;
+
+  /* Text */
+  --text: #0f172a;     /* quase preto */
+  --muted: #475569;    /* cinza médio */
+
+  /* Borders */
+  --border: rgba(15, 23, 42, .12);
+
+  /* Brand / Status */
+  --brand: #6d5efc;    /* mantém roxo */
+  --brand-2: #22c55e;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+
+  /* Radius */
+  --radius: 22px;
+  --radius-sm: 16px;
+
+  /* Shadows (um pouco mais fortes pra contraste) */
+  --shadow: 0 20px 45px rgba(15, 23, 42, .18);
+  --shadow-soft: 0 10px 22px rgba(15, 23, 42, .12);
+
+  /* Font */
+  --font: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Arial, "Noto Sans", "Helvetica Neue";
+}
+

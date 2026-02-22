@@ -1,0 +1,283 @@
+<div class="sale-stage">
+
+  <div class="sale-panel">
+    <!-- Cabeçalho compacto -->
+    <div class="sale-header">
+  <div class="sale-header-left">
+  <div class="sale-title-row">
+    <div class="sale-title">Nova Venda</div>
+
+    <!-- pill igual ao Caixa -->
+    <span class="status-pill" id="saleStatusPill">—</span>
+  </div>
+
+  <div class="sale-sub">Digite nome ou leia o <strong>código de barras</strong></div>
+</div>
+
+
+  <!-- Cliente (AGORA NO TOPO, fora do carrinho) -->
+  <div class="customer-picker header" id="customerPicker">
+    <div class="customer-label">Cliente</div>
+
+    <div class="customer-row">
+      <input id="custSearch" class="cust-search" type="text"
+             placeholder="Buscar cliente (nome/telefone/CPF)..."
+             autocomplete="off" />
+
+      <div id="custSelected" class="cust-selected hidden">
+        <span id="custSelectedName">Consumidor Final</span>
+      </div>
+
+      <!-- ✅ botão cadastrar: boneco + ao lado -->
+      <button id="btnAddCustomer" class="cust-add" title="Cadastrar cliente" type="button">
+        <span class="cust-add-ico">👤</span>
+        <span class="cust-add-plus">+</span>
+      </button>
+
+      <button id="btnClearCustomer" class="cust-clear hidden" title="Remover cliente" type="button">🗑</button>
+    </div>
+
+    <div id="custDropdown" class="cust-dropdown hidden"></div>
+  </div>
+</div>
+
+
+    <div class="sale-grid">
+      <!-- ESQUERDA -->
+      <section class="sale-left">
+
+        <!-- Busca -->
+        <div class="search-box">
+          <div class="search-ico">🔎</div>
+          <input id="searchInput" class="search-input" placeholder="Buscar produto ou ler código de barras" autocomplete="off" />
+          <button id="btnScan" class="scan-btn" title="Simular leitura">⌁</button>
+        </div>
+
+        <!-- Resultados (aparecem abaixo da busca) -->
+        <div id="searchResults" class="results"></div>
+
+      </section>
+
+
+
+      <!-- DIREITA (Carrinho) -->
+      <aside class="sale-right">
+        <div class="cart-panel">
+          <div class="cart-head">
+            <div class="cart-title">Carrinho</div>
+            <div class="cart-mini"><span id="cartCount">0</span> itens</div>
+          </div>
+
+          <div id="cartList" class="cart-list"></div>
+
+          <div class="cart-totals">
+            <div class="row">
+              <span>Subtotal</span>
+              <strong id="subtotalValue">R$ 0,00</strong>
+            </div>
+            <div class="row muted">
+              <span>Descontos</span>
+              <strong id="discountValue">R$ 0,00</strong>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+</div>
+
+<!-- Dock fixo (rodapé) -->
+<footer class="sale-dock">
+  <div class="dock-total">
+    <div class="dock-label">Total</div>
+    <div class="dock-value" id="totalValue">R$ 0,00</div>
+  </div>
+
+  <div class="dock-actions">
+    <button id="btnDiscount" class="btn-soft">Aplicar Desconto</button>
+    <button id="btnCheckout" class="btn-primary">Finalizar Venda</button>
+  </div>
+</footer>
+
+<!-- Modal Desconto -->
+<div id="discountModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-title">Aplicar Desconto</div>
+
+    <div class="modal-grid">
+      <div class="field">
+        <label>Tipo</label>
+        <select id="discountType">
+          <option value="value">Valor (R$)</option>
+          <option value="percent">Porcentagem (%)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Desconto</label>
+        <input id="discountInput" type="number" inputmode="decimal" placeholder="0" />
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Motivo</label>
+      <input id="discountReason" type="text" placeholder="Ex.: promo, cliente fidelidade..." maxlength="60" />
+    </div>
+
+    <!-- Lista de descontos aplicados -->
+    <div class="discount-list" id="discountList"></div>
+
+    <div class="modal-actions">
+      <button id="btnDiscountCancel" class="btn-ghost">Cancelar</button>
+      <button id="btnDiscountApply" class="btn-confirm">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Pagamento -->
+<div id="payModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-title">Pagamento</div>
+
+    <div class="pay-total">
+      <div class="pay-label">Valor a pagar</div>
+      <div class="pay-value" id="payTotal">R$ 0,00</div>
+      <div class="pay-mini" id="payMini">Subtotal R$ 0,00 • Desconto R$ 0,00</div>
+    </div>
+
+    <!-- Split (pagamento dividido) -->
+    <div class="split-box" id="splitBox">
+      <div class="split-top">
+        <div class="split-kpi">
+          <div class="kpi-label">Falta</div>
+          <div class="kpi-value" id="kpiRemaining">R$ 0,00</div>
+        </div>
+        <div class="split-kpi">
+          <div class="kpi-label">Pago</div>
+          <div class="kpi-value muted" id="kpiPaid">R$ 0,00</div>
+        </div>
+      </div>
+
+      <div class="split-entry">
+        <div class="chip" id="chipMethod">Selecione uma forma</div>
+
+        <input id="splitAmount" type="number" inputmode="decimal" placeholder="Valor desta parcela" />
+        <button class="btn-add-split" id="btnAddSplit" disabled>Adicionar</button>
+      </div>
+
+      <div class="split-change" id="splitChange"></div>
+
+      <div class="split-list" id="splitList"></div>
+    </div>
+
+    <div class="pay-methods">
+      <button class="pay-btn" data-method="pix">PIX</button>
+      <button class="pay-btn" data-method="debit">Débito</button>
+      <button class="pay-btn" data-method="credit">Crédito</button>
+      <button class="pay-btn" data-method="cash">Dinheiro</button>
+    </div>
+
+    <!-- Opções de cartão (só aparece em Crédito/Débito) -->
+<div id="cardOptions" class="card-options hidden">
+  <div class="field">
+    <label>Maquininha</label>
+    <select id="cardMachineSelect"></select>
+  </div>
+
+  <div class="field" id="cardInstallmentsField">
+    <label>Parcelas</label>
+    <select id="cardInstallmentsSelect"></select>
+  </div>
+
+  <div class="muted small" id="cardOptionsHint"></div>
+</div>
+
+    
+
+    <div id="cashArea" class="cash-area hidden">
+      <div class="field">
+        <label>Valor recebido</label>
+        <input id="cashValue" type="number" inputmode="decimal" placeholder="0,00" />
+      </div>
+      <div class="cash-change" id="changeValue"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button id="btnPayCancel" class="btn-ghost">Cancelar</button>
+      <button id="btnPayConfirm" class="btn-confirm">Confirmar</button>
+    </div>
+
+  </div>
+</div>
+
+<div id="customerModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-title">Cadastrar Cliente</div>
+
+    <div class="modal-grid">
+      <div class="field">
+        <label>Nome</label>
+        <input id="custNewName" type="text" placeholder="Ex.: Carla Guedes" maxlength="60" />
+      </div>
+
+      <div class="field">
+        <label>Telefone</label>
+        <input id="custNewPhone" type="text" placeholder="(xx) xxxxx-xxxx" maxlength="20" />
+      </div>
+
+      <div class="field">
+        <label>CPF</label>
+        <input id="custNewDoc" type="text" placeholder="000.000.000-00" maxlength="20" />
+      </div>
+
+      <div class="field">
+        <label>Observação</label>
+        <input id="custNewNotes" type="text" placeholder="Opcional" maxlength="80" />
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button id="btnCustCancel" class="btn-ghost">Cancelar</button>
+      <button id="btnCustSave" class="btn-confirm">Salvar</button>
+    </div>
+
+
+    <!-- ✅ A LISTA TEM QUE FICAR AQUI DENTRO -->
+    <hr class="modal-divider">
+
+    <div class="cust-manager">
+      <input
+        id="custManageSearch"
+        class="cust-manage-search"
+        placeholder="Buscar cliente por nome ou CPF..."
+        autocomplete="off"
+      />
+
+      <div id="custManageList" class="cust-manage-list"></div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- =========================
+  MODAL: VENDA FINALIZADA (RESUMO + IMPRIMIR)
+========================= -->
+<div id="saleDoneBackdrop" class="core-overlay core-hidden">
+  <div class="core-modal sale-done" role="dialog" aria-modal="true">
+    <div class="sale-done-head">
+      <div class="sale-done-title">Venda finalizada ✅</div>
+    </div>
+
+    <div id="saleDoneSummary"></div>
+
+    <div class="sale-done-actions">
+      <button id="btnSaleDoneOk" class="btn-ghost" type="button">Fechar</button>
+      <button id="btnSaleDonePrint" class="btn-primary" type="button">Imprimir cupom</button>
+    </div>
+
+  </div>
+</div>
+
+

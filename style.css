@@ -1,0 +1,1205 @@
+*{ box-sizing:border-box; }
+html,body{ height:100%; }
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color:#0f172a;
+
+  
+}
+
+/* diagonais suaves */
+body::before{
+  content:"";
+  position:fixed;
+  inset:-200px;
+  transform: rotate(0deg);
+  pointer-events:none;
+  opacity:.35;
+}
+
+/* ================= TOPBAR (igual vibe do mock) ================= */
+.topbar{
+  position:relative;
+  height:72px;
+  padding:0 18px;
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+
+  background: linear-gradient(
+    180deg,
+    #374151,
+    #1f2937);
+  color:#e6f0ff;
+  box-shadow: 0 12px 26px rgba(2, 12, 20, .28);
+}
+
+.topbar-left{ display:flex; align-items:center; gap:12px; min-width:0; }
+.brand-mark{
+  width:34px; height:34px;
+  display:grid; place-items:center;
+  border-radius:10px;
+  background: linear-gradient(135deg, rgba(59,130,246,1), rgba(147,197,253,1));
+  box-shadow: 0 10px 18px rgba(0,0,0,.18);
+  color:#0b1b2b;
+  font-weight:900;
+}
+
+.brand-title{
+  font-size:22px;
+  letter-spacing:.5px;
+  white-space:nowrap;
+}
+.brand-title span{ font-weight:900; }
+.brand-title strong{ font-weight:700; opacity:.9; }
+
+.topbar-right{ display:flex; align-items:center; gap:12px; }
+.hello{ font-weight:700; opacity:.95; }
+
+.divider{
+  width:1px; height:26px;
+  background: rgba(230,240,255,.22);
+  margin:0 2px;
+}
+
+.topbar-icon{
+  width:40px; height:40px;
+  border-radius:12px;
+  border:1px solid rgba(230,240,255,.18);
+  background: rgba(255,255,255,.06);
+  color:#e6f0ff;
+  cursor:pointer;
+  display:grid; place-items:center;
+  font-size:18px;
+  transition: transform .06s ease, background .2s ease, border-color .2s ease;
+}
+.topbar-icon:hover{
+  background: rgba(255,255,255,.10);
+  border-color: rgba(230,240,255,.28);
+}
+.topbar-icon:active{ transform: scale(.98); }
+
+/* ================= LAYOUT ================= */
+#app{
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 26px 18px 40px;
+}
+
+/* grade 2x2 dos cards grandes */
+.hero-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+/* cards grandes estilo mock */
+.hero-card{
+  position:relative;
+  border-radius: 22px;
+  padding: 22px;
+  min-height: 170px;
+
+  /* borda branca grossa + sombra */
+  background: #fff;
+  box-shadow: 0 18px 34px rgba(15, 23, 42, .12);
+  overflow:hidden;
+}
+.hero-card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: 22px;
+  box-shadow: inset 0 0 0 10px rgba(255,255,255,.75);
+  pointer-events:none;
+}
+
+.hero-inner{
+  position:relative;
+  height:100%;
+  border-radius: 18px;
+  padding: 22px 22px;
+  overflow:hidden;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+}
+
+.hero-title{
+  font-size:42px;
+  line-height:1;
+  font-weight:900;
+  letter-spacing:.2px;
+  color: rgba(255,255,255,.94);
+  margin:0 0 14px;
+  text-shadow: 0 10px 20px rgba(0,0,0,.18);
+}
+
+.hero-action{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding: 11px 16px;
+  border-radius: 999px;
+  border: 0;
+  cursor:pointer;
+  font-weight:800;
+  color: rgba(255,255,255,.95);
+  background: rgba(0,0,0,.22);
+  box-shadow: 0 10px 18px rgba(0,0,0,.16);
+}
+.hero-action:active{ transform: scale(.99); }
+
+.hero-illu{
+  width: 180px;
+  height: 120px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.14);
+  border: 1px solid rgba(255,255,255,.18);
+  display:grid; place-items:center;
+  font-size: 44px;
+  flex: 0 0 auto;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.06);
+}
+
+/* cores dos 4 cards */
+.hero-green .hero-inner{
+  background: linear-gradient(135deg, #1e9b67, #7ddc9c);
+}
+.hero-orange .hero-inner{
+  background: linear-gradient(135deg, #e67b2f, #f2b14a);
+}
+.hero-blue .hero-inner{
+  background: linear-gradient(135deg, #1f6bb8, #4db7ff);
+}
+.hero-purple .hero-inner{
+  background: linear-gradient(135deg, #5b57d6, #8b86ff);
+}
+
+/* ================= CARDS DE BAIXO ================= */
+.bottom-grid{
+  margin-top: 18px;
+  display:grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.small-card{
+  background: rgba(255,255,255,.86);
+  border-radius: 18px;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, .10);
+  border: 1px solid rgba(15, 23, 42, .08);
+  padding: 16px 16px 18px;
+  min-height: 130px;
+}
+
+.small-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:900;
+  color:#1e293b;
+  margin-bottom: 10px;
+}
+.small-title .ico{
+  width:34px; height:34px;
+  border-radius: 12px;
+  display:grid; place-items:center;
+  background: rgba(15, 23, 42, .06);
+  border: 1px solid rgba(15, 23, 42, .08);
+}
+
+.hr{
+  height:1px;
+  background: rgba(15, 23, 42, .10);
+  margin: 10px 0 12px;
+}
+
+.small-row{
+  display:flex;
+  justify-content:space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(15, 23, 42, .06);
+  font-weight:700;
+  color:#334155;
+}
+.small-row:last-child{ border-bottom:none; }
+
+.quick-grid{
+  display:grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.quick-btn{
+  background: rgba(255,255,255,.95);
+  border: 1px solid rgba(15, 23, 42, .10);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 12px 22px rgba(15, 23, 42, .08);
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  font-weight:900;
+  color:#1f2937;
+}
+.quick-btn .mini-ico{
+  width:44px; height:44px;
+  border-radius: 16px;
+  display:grid; place-items:center;
+  background: rgba(34,197,94,.12);
+  border: 1px solid rgba(34,197,94,.18);
+  font-size:22px;
+}
+
+.notify{
+  height: 84px;
+  display:grid;
+  place-items:center;
+  color:#64748b;
+  font-style: italic;
+  font-weight:700;
+}
+.notify .bell{
+  font-size: 22px;
+  opacity:.7;
+}
+
+/* ================= RESPONSIVO ================= */
+@media (max-width: 860px){
+  .hero-grid{ grid-template-columns: 1fr; }
+  .bottom-grid{ grid-template-columns: 1fr; }
+  .hero-illu{ width: 150px; }
+  .hero-title{ font-size: 38px; }
+}
+@media (max-width: 520px){
+  .hello{ display:none; }
+  .hero-illu{ display:none; } /* no celular foca no botão */
+  .hero-title{ font-size: 34px; }
+}
+
+:root{ --topbar-h: 72px; } /* ajuste uma vez e acabou */
+
+#btnGoHome{
+  cursor: pointer;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  transition: transform .06s ease, background .2s ease, box-shadow .2s ease, opacity .2s ease;
+}
+
+#btnGoHome:hover{
+  background: rgba(255,255,255,.08);
+  box-shadow: 0 10px 18px rgba(0,0,0,.10);
+}
+
+#btnGoHome:active{
+  transform: scale(.98);
+  background: rgba(255,255,255,.10);
+}
+
+/* Logout: centralização perfeita do símbolo ⏻ */
+#btnLogout{
+  display:flex;                 /* em vez de grid */
+  align-items:center;
+  justify-content:center;
+}
+
+#btnLogout .icon-power{
+  display:block;
+  line-height: 1;               /* mata baseline esquisita */
+  transform: translateY(1px);   /* ajuste visual fino (pode ser 0px ou 2px) */
+  font-size: 19px;
+}
+
+.tabs{
+  display:flex;
+  gap:8px;
+  margin-bottom:14px;
+}
+
+.tab-btn{
+  flex:1;
+  height:40px;
+  border-radius:14px;
+  border:1px solid rgba(15,23,42,.12);
+  background:#fff;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.tab-btn.active{
+  background:#0ea5e9;
+  color:#fff;
+  border:none;
+}
+
+.settings-list{
+  margin-top:12px;
+  display:grid;
+  gap:8px;
+}
+
+.settings-item{
+  padding:12px;
+  border-radius:14px;
+  border:1px solid rgba(15,23,42,.12);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-weight:900;
+}
+
+.settings-actions button{
+  margin-left:6px;
+}
+
+.tabs{
+  display:flex;
+  gap:8px;
+  margin-bottom:14px;
+}
+
+.tab-btn{
+  flex:1;
+  height:40px;
+  border-radius:14px;
+  border:1px solid rgba(15,23,42,.12);
+  background:#fff;
+  font-weight:900;
+  cursor:pointer;
+}
+
+.tab-btn.active{
+  background:#0ea5e9;
+  color:#fff;
+  border:none;
+}
+
+.settings-list{
+  margin-top:12px;
+  display:grid;
+  gap:8px;
+}
+
+.settings-item{
+  padding:12px;
+  border-radius:14px;
+  border:1px solid rgba(15,23,42,.12);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-weight:900;
+}
+
+.settings-actions button{
+  margin-left:6px;
+}
+
+/* =========================
+ CONFIGURAÇÕES DO SISTEMA
+========================= */
+
+.admin-auth input,
+.form input,
+.form select {
+  width: 100%;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(15,23,42,.15);
+  padding: 0 12px;
+  margin-bottom: 10px;
+}
+
+.system-config {
+  width: min(640px, 100%);
+}
+
+.config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.config-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.tab {
+  flex: 1;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(15,23,42,.12);
+  background: #f8fafc;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tab.active {
+  background: #0ea5e9;
+  color: white;
+}
+
+.config-content {
+  margin-top: 10px;
+}
+
+.list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(15,23,42,.12);
+}
+
+.actions button {
+  margin-left: 6px;
+}
+
+.btn-primary.small {
+  height: 36px;
+  padding: 0 14px;
+}
+
+.error-text {
+  margin-top: 8px;
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.hidden {
+  display: none;
+}
+
+.form-box {
+  margin-top: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.list-box {
+  margin-top: 20px;
+  display: grid;
+  gap: 10px;
+}
+
+.btn-add {
+  margin-top: 8px;
+}
+
+.btn-save {
+  margin-top: 10px;
+  width: fit-content;
+}
+
+.grid-rates {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+/* ===== Config Modal: visual CORE ===== */
+.system-config{
+  width: min(760px, calc(100% - 24px));
+  border-radius: 22px;
+  padding: 16px;
+}
+
+.config-tabs{ gap: 10px; }
+
+.tab{
+  height: 42px;
+  border-radius: 16px;
+  font-weight: 950;
+  transition: .15s ease;
+}
+.tab:not(.active):hover{
+  background: rgba(148,163,184,.20);
+}
+.tab.active{
+  box-shadow: 0 18px 30px rgba(14,165,233,.18);
+}
+
+.btn-primary.small,
+.btn-add,
+.btn-save{
+  border: 0;
+  border-radius: 16px;
+  font-weight: 950;
+  cursor: pointer;
+  transition: .15s ease;
+}
+
+.btn-add{
+  height: 38px;
+  padding: 0 14px;
+  background: rgba(22,163,74,.12);
+  color: #166534;
+  border: 1px solid rgba(22,163,74,.28);
+}
+.btn-add:hover{ background: rgba(22,163,74,.18); }
+
+.btn-save{
+  height: 40px;
+  padding: 0 16px;
+  background: linear-gradient(135deg,#16a34a,#4ade80);
+  color:#fff;
+  box-shadow: 0 18px 30px rgba(22,163,74,.18);
+}
+.btn-save:hover{ transform: translateY(-1px); }
+
+.form-box input,
+.form-box select{
+  height: 44px;
+  border-radius: 16px;
+  border: 1px solid rgba(15,23,42,.12);
+  padding: 0 12px;
+  font-weight: 900;
+  outline: none;
+  background: rgba(255,255,255,.92);
+}
+.form-box input:focus,
+.form-box select:focus{
+  border-color: rgba(14,165,233,.55);
+  box-shadow: 0 0 0 3px rgba(14,165,233,.14);
+}
+
+.grid-rates{ grid-template-columns: repeat(3, 1fr); }
+
+.list-box{
+  margin-top: 14px;
+}
+
+.list-item{
+  border-radius: 18px;
+  padding: 12px 12px;
+  border: 1px solid rgba(15,23,42,.10);
+  background: rgba(255,255,255,.86);
+  box-shadow: 0 10px 22px rgba(15,23,42,.06);
+}
+
+.list-item .meta{
+  color: #64748b;
+  font-weight: 900;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.actions{
+  display:flex;
+  gap: 8px;
+}
+
+/* botões ícones */
+.icon-action{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display:grid;
+  place-items:center;
+  border: 1px solid rgba(15,23,42,.10);
+  background: rgba(255,255,255,.92);
+  cursor:pointer;
+  transition: .15s ease;
+  font-weight: 950;
+}
+
+.icon-action:hover{ transform: translateY(-1px); }
+
+.icon-action.edit{
+  background: rgba(59,130,246,.12);
+  border-color: rgba(59,130,246,.26);
+  color: #1d4ed8;
+}
+
+.icon-action.del{
+  background: rgba(239,68,68,.12);
+  border-color: rgba(239,68,68,.26);
+  color: #b91c1c;
+}
+
+/* garantir que nada estoura no modal */
+.system-config,
+.system-config *{
+  box-sizing: border-box;
+}
+
+.system-config{
+  width: min(900px, calc(100% - 24px)); /* aumenta a “caixona” */
+}
+
+.form-box,
+.list-box,
+.grid-rates{
+  width: 100%;
+  max-width: 100%;
+}
+
+/* MUITO importante em grid: permitir encolher */
+.grid-rates > input,
+.form-box input,
+.form-box select{
+  min-width: 0;
+}
+
+/* se quiser, deixa 4 colunas em telas grandes */
+@media (min-width: 900px){
+  .grid-rates{
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* em telas menores volta pra 2 colunas */
+@media (max-width: 650px){
+  .grid-rates{
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.grid-rates input::placeholder{
+  font-size: 12px;
+}
+
+/* ===== MODAIS GLOBAIS (blindado contra CSS das páginas) ===== */
+.core-overlay.core-hidden{ display:none !important; }
+
+
+.core-overlay{
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(2,6,23,.55) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 9999 !important;
+}
+
+.core-modal{
+  width: min(760px, calc(100% - 24px)) !important;
+  border-radius: 22px !important;
+  background: rgba(255,255,255,.96) !important;
+  border: 1px solid rgba(15,23,42,.12) !important;
+  box-shadow: 0 30px 80px rgba(2,6,23,.35) !important;
+  padding: 14px !important;
+}
+
+/* ===== Padronizar botões do MODAL ADMIN (em qualquer página) ===== */
+#adminAuthOverlay .modal-actions{
+  display:flex !important;
+  gap: 12px !important;
+  margin-top: 12px !important;
+}
+
+#adminAuthOverlay .modal-actions button{
+  height: 44px !important;
+  border-radius: 16px !important;
+  font-weight: 950 !important;
+  cursor: pointer !important;
+  padding: 0 16px !important;
+  border: 1px solid rgba(15,23,42,.12) !important;
+}
+
+/* Cancelar */
+#adminAuthOverlay .btn-ghost{
+  flex: 1 !important;
+  background: rgba(255,255,255,.92) !important;
+  color:#0f172a !important;
+}
+
+/* Entrar */
+#adminAuthOverlay .btn-primary{
+  flex: 1.2 !important;
+  border: 0 !important;
+  color:#fff !important;
+  background: linear-gradient(135deg,#16a34a,#4ade80) !important;
+  box-shadow: 0 18px 30px rgba(22,163,74,.18) !important;
+}
+
+/* Garantir que o card do admin sempre tenha o mesmo tamanho */
+#adminAuthOverlay .admin-auth{
+  width: min(620px, calc(100% - 24px)) !important;
+}
+
+/* ===== Padronizar dentro do Config do Sistema ===== */
+#systemConfigOverlay .btn-add,
+#systemConfigOverlay .btn-save,
+#systemConfigOverlay .icon-action{
+  all: unset;
+  box-sizing: border-box;
+}
+
+/* re-aplicar o visual */
+#systemConfigOverlay .btn-add{
+  display:inline-flex;
+  align-items:center;
+  height:38px;
+  padding:0 14px;
+  border-radius:16px;
+  font-weight:950;
+  cursor:pointer;
+  background: rgba(22,163,74,.12);
+  color:#166534;
+  border: 1px solid rgba(22,163,74,.28);
+}
+
+#systemConfigOverlay .btn-save{
+  display:inline-flex;
+  align-items:center;
+  height:40px;
+  padding:0 16px;
+  border-radius:16px;
+  font-weight:950;
+  cursor:pointer;
+  border:0;
+  color:#fff;
+  background: linear-gradient(135deg,#16a34a,#4ade80);
+  box-shadow: 0 18px 30px rgba(22,163,74,.18);
+}
+
+#systemConfigOverlay .icon-action{
+  display:grid;
+  place-items:center;
+  width:34px;
+  height:34px;
+  border-radius:12px;
+  border:1px solid rgba(15,23,42,.10);
+  background: rgba(255,255,255,.92);
+  cursor:pointer;
+  font-weight:950;
+}
+
+#systemConfigOverlay .icon-action.edit{
+  background: rgba(59,130,246,.12);
+  border-color: rgba(59,130,246,.26);
+  color: #1d4ed8;
+}
+#systemConfigOverlay .icon-action.del{
+  background: rgba(239,68,68,.12);
+  border-color: rgba(239,68,68,.26);
+  color: #b91c1c;
+}
+
+/* =========================
+   CHAT GLOBAL (Topbar + Modal)
+========================= */
+
+.chat-btn{
+  position: relative;
+}
+
+.chat-badge{
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #ef4444; /* vermelho */
+  box-shadow: 0 0 0 2px rgba(12,36,58,1); /* aro pra destacar no fundo azul */
+}
+
+/* Modal do chat */
+.chat-modal{
+  width: min(720px, calc(100% - 24px)) !important;
+  padding: 14px !important;
+}
+
+.chat-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.chat-title .t1{
+  font-weight: 950;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.chat-title .t2{
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.chat-list{
+  height: min(55vh, 460px);
+  overflow: auto;
+  border-radius: 16px;
+  border: 1px solid rgba(15,23,42,.10);
+  background: rgba(255,255,255,.92);
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.chat-msg{
+  display:flex;
+  gap: 10px;
+  align-items:flex-start;
+}
+
+.chat-avatar{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display:grid;
+  place-items:center;
+  font-weight: 950;
+  color:#0b1b2b;
+  background: linear-gradient(135deg, rgba(59,130,246,1), rgba(147,197,253,1));
+  flex: 0 0 auto;
+}
+
+.chat-bubble{
+  flex: 1;
+  border-radius: 16px;
+  border: 1px solid rgba(15,23,42,.10);
+  background: #fff;
+  padding: 10px 12px;
+  box-shadow: 0 10px 18px rgba(15,23,42,.06);
+}
+
+.chat-meta{
+  display:flex;
+  gap: 8px;
+  align-items:baseline;
+  font-weight: 950;
+  color:#0f172a;
+  margin-bottom: 6px;
+}
+
+.chat-meta .time{
+  font-weight: 900;
+  font-size: 12px;
+  color:#64748b;
+}
+
+.chat-text{
+  white-space: pre-wrap;
+  font-weight: 800;
+  color:#1f2937;
+  line-height: 1.25;
+}
+
+.chat-compose{
+  margin-top: 12px;
+  display:flex;
+  gap: 10px;
+  align-items:center;
+}
+
+.chat-compose input{
+  flex: 1;
+  height: 44px;
+  border-radius: 16px;
+  border: 1px solid rgba(15,23,42,.12);
+  padding: 0 12px;
+  font-weight: 900;
+  outline: none;
+  background: rgba(255,255,255,.92);
+}
+
+.chat-compose input:focus{
+  border-color: rgba(14,165,233,.55);
+  box-shadow: 0 0 0 3px rgba(14,165,233,.14);
+}
+
+.chat-compose .btn-primary{
+  height: 44px;
+  border-radius: 16px;
+  font-weight: 950;
+  padding: 0 16px;
+  border: 0;
+  cursor: pointer;
+  color:#fff;
+  background: linear-gradient(135deg,#16a34a,#4ade80);
+  box-shadow: 0 18px 30px rgba(22,163,74,.18);
+}
+
+.chat-foot{
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color:#64748b;
+}
+
+/* ===== Topbar mínima no LOGIN ===== */
+body.is-login .topbar-right{
+  display:none !important;
+}
+
+body.is-login .topbar-right{
+  display:none !important;
+}
+
+.chat-actions{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+}
+
+/* ===== Modal: Limpar chat ===== */
+.chat-clear-modal{
+  width: min(520px, calc(100% - 24px)) !important;
+  padding: 14px !important;
+}
+
+.chat-clear-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.chat-clear-title{
+  font-weight: 950;
+  font-size: 18px;
+  color:#0f172a;
+}
+
+.chat-clear-sub{
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 800;
+  color:#64748b;
+}
+
+.chat-clear-body{
+  display:grid;
+  gap: 8px;
+}
+
+.chat-clear-label{
+  font-size: 12px;
+  font-weight: 900;
+  color:#334155;
+}
+
+#chatClearPass{
+  height: 44px;
+  border-radius: 16px;
+  border: 1px solid rgba(15,23,42,.12);
+  padding: 0 12px;
+  font-weight: 900;
+  outline: none;
+  background: rgba(255,255,255,.92);
+}
+
+#chatClearPass:focus{
+  border-color: rgba(239,68,68,.55);
+  box-shadow: 0 0 0 3px rgba(239,68,68,.14);
+}
+
+.chat-clear-error{
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(239,68,68,.22);
+  background: rgba(239,68,68,.08);
+  color:#b91c1c;
+  font-weight: 950;
+  font-size: 12px;
+}
+
+.chat-clear-warn{
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(245,158,11,.22);
+  background: rgba(245,158,11,.10);
+  color:#92400e;
+  font-weight: 900;
+  font-size: 12px;
+}
+
+.chat-clear-actions{
+  margin-top: 12px;
+  display:flex;
+  justify-content:center;
+  gap: 12px;
+}
+
+.chat-clear-actions .btn-ghost,
+.chat-clear-actions .btn-danger{
+  flex: 0 0 auto;
+  width: 180px;
+  height: 44px;
+  border-radius: 14px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.chat-clear-actions .btn-ghost{
+  border: 1px solid rgba(15,23,42,.14);
+  background:#fff;
+  color:#0f172a;
+}
+
+.chat-clear-actions .btn-danger{
+  border: 0;
+  color:#fff;
+  background: linear-gradient(135deg, #ef4444, #fb7185);
+  box-shadow: 0 14px 26px rgba(239,68,68,.20);
+}
+
+.topbar-center{
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.topbar-center img{
+  height: 35px; /* mesmo “peso visual” do texto CORE POS */
+  width: auto;
+  opacity: .95;
+}
+
+.topbar-logo-center{
+  height: 30px; /* destaque principal */
+  width: auto;
+  opacity: .98;
+}
+
+.topbar-logo-left{
+  height: 50px;   /* ⬅️ tamanho ideal */
+  width: auto;
+  display: block;
+}
+
+/* botão invisível (sem fundo branco) */
+.topbar-logo-btn{
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  line-height: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* evita aquele “quadrado” de foco feio, mas mantém acessibilidade */
+.topbar-logo-btn:focus-visible{
+  outline: 2px solid rgba(255,255,255,.35);
+  outline-offset: 4px;
+  border-radius: 10px;
+}
+
+/* garante que as imagens não criem caixa branca */
+.topbar-logo-btn img{
+  display: block;
+  background: transparent;
+}
+
+/* ===== Lowbar / Footer ===== */
+.lowbar{
+  width: 100%;
+  margin-top: 48px;
+  padding: 28px 0 18px;
+  display: flex;
+  justify-content: center;
+}
+
+.lowbar-content{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  opacity: .65;
+  text-align: center;
+}
+
+.lowbar-text{
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  color: #475569;
+}
+
+.lowbar-logo{
+  height: 22px; /* bem pequenininho */
+  width: auto;
+}
+
+.lowbar-version{
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.topbar-icon-btn{
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15);
+  color: #fff;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  transition: background .2s ease, transform .1s ease;
+}
+
+.topbar-icon-btn:hover{
+  background: rgba(255,255,255,.16);
+}
+
+.topbar-icon-btn:active{
+  transform: scale(.96);
+}
+
+/* ===== Topbar: ícones padrão (garante cursor e visual) ===== */
+.topbar-icon{
+  cursor: pointer !important;
+  user-select: none;
+}
+
+/* botão Home segue exatamente o padrão */
+.topbar-icon.home-btn{
+  cursor: pointer !important;
+}
+
+/* se algum CSS global estiver matando botão */
+button.topbar-icon{
+  appearance: none;
+  border: 0;
+  background: transparent;
+}

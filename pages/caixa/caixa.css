@@ -1,0 +1,470 @@
+/* =========================
+   CAIXA — Layout padrão CORE
+   (container branco sólido + cards internos claros)
+   ========================= */
+
+.page-container{
+  max-width: 1280px;
+  margin: 20px auto;
+  padding: 24px;
+  border-radius: 22px;
+
+  background: #ffffff;
+  background-image: none !important;
+
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.10),
+    0 4px 10px rgba(0, 0, 0, 0.06);
+
+  overflow: hidden; /* garante que nada “vaze” na borda arredondada */
+}
+
+.caixa-page{
+  padding: 0;
+  min-height: 520px; /* dá presença visual parecida com Produtos */
+}
+
+.caixa-header{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.caixa-header h1{
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.muted{
+  opacity: .75;
+  margin: 4px 0 0;
+}
+
+.muted.small{
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+/* ações no topo */
+.caixa-actions{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* grid */
+.caixa-grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* cards internos (não usar .card pra não brigar com outras páginas) */
+.cash-card{
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.cash-card.full{
+  grid-column: 1 / -1;
+}
+
+.cash-card-title{
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+/* status */
+.status-row{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.status-pill{
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  font-weight: 800;
+  font-size: 12px;
+  background: #ffffff;
+}
+
+.status-pill.open{
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.30);
+}
+
+.status-pill.closed{
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.26);
+}
+
+.status-meta{
+  font-size: 12px;
+  opacity: .8;
+}
+
+/* KPIs */
+.status-kpis{
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.kpi{
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.kpi-label{
+  font-size: 12px;
+  opacity: .8;
+}
+
+.kpi-value{
+  font-size: 16px;
+  font-weight: 900;
+  margin-top: 4px;
+}
+
+/* resumo por pagamento */
+.pay-grid{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.pay-item{
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.pay-label{
+  font-size: 12px;
+  opacity: .8;
+}
+
+.pay-value{
+  font-size: 16px;
+  font-weight: 900;
+  margin-top: 4px;
+}
+
+/* eventos */
+.events-list{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.event-row{
+  display: grid;
+  grid-template-columns: 120px 1fr 120px auto;
+  gap: 10px;
+  padding: 10px;
+
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  align-items: center;
+}
+
+.event-type{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-weight: 900;
+  font-size: 12px;
+  opacity: .9;
+}
+
+
+.event-desc{
+  font-size: 13px;
+  opacity: .95;
+}
+
+.event-amt{
+  text-align: right;
+  font-weight: 900;
+}
+
+/* botões (mantém o padrão “clean”) */
+.btn{
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.btn.primary{
+  background: rgba(59, 130, 246, 0.14);
+  border-color: rgba(59, 130, 246, 0.26);
+}
+
+.btn.danger{
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.26);
+}
+
+.btn.icon{
+  padding: 8px 10px;
+}
+
+/* modal */
+.core-modal-backdrop{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.core-modal-backdrop.hidden{
+  display: none;
+}
+
+.core-modal{
+  width: min(520px, calc(100% - 24px));
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.core-modal-head{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.core-modal-title{
+  font-weight: 900;
+}
+
+.core-modal-body .field{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.core-modal-body .field span{
+  font-size: 12px;
+  opacity: .8;
+}
+
+.core-modal-body .field input{
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #111827;
+}
+
+.modal-actions{
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* responsivo */
+@media (max-width: 860px){
+  .caixa-grid{ grid-template-columns: 1fr; }
+  .status-kpis, .pay-grid{ grid-template-columns: 1fr; }
+  .event-row{ grid-template-columns: 110px 1fr 100px; }
+}
+
+/* força a página do Caixa a ficar acima de qualquer overlay do background */
+.page-container,
+.caixa-page {
+  position: relative;
+  z-index: 9999;
+  isolation: isolate;  /* cria um novo contexto de empilhamento */
+}
+
+/* 4 colunas no resumo */
+.pay-grid{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+/* Lucro */
+.profit-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profit-value{
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.profit-pill{
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  font-weight: 900;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* responsivo */
+@media (max-width: 860px){
+  .pay-grid{ grid-template-columns: 1fr 1fr; }
+  .profit-row{ flex-direction: column; align-items: flex-start; }
+  .profit-pill{ min-width: auto; }
+}
+
+/* =========================================================
+   CONTROLE ÚNICO DO TAMANHO DO BLOCO (VERMELHO → VERDE)
+   ========================================================= */
+
+/* trava scroll do body (só enquanto estiver na página Caixa) */
+body.cash-scroll-lock{ overflow: hidden; }
+
+/* o bloco branco não rola */
+.page-container{
+  max-width: 1280px;
+  margin: 20px auto;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow:
+    0 10px 25px rgba(0, 0, 0, 0.10),
+    0 4px 10px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+/* ✅ quem rola é só o conteúdo interno — e aqui ajusta a ALTURA */
+.page-scroll{
+  /* quanto MAIOR esse número final, mais “curto” fica o bloco (mais perto do verde) */
+  height: calc(100vh - 92px - 100px);
+  overflow: auto;
+
+  padding: 24px;
+  padding-bottom: 32px; /* mantém seu ajuste do “respiro” entre eventos e fundo */
+}
+
+/* remove setinhas (Chrome/Edge) */
+.page-scroll::-webkit-scrollbar-button{
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+
+.events-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom: 10px;
+}
+
+/* botão de ação por evento */
+.event-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+.event-btn{
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.event-btn.danger{
+  border-color: rgba(239,68,68,.26);
+  background: rgba(239,68,68,.10);
+  color: #b91c1c;
+}
+
+/* modal de detalhes mais largo */
+.core-modal.sale-view{
+  width: min(820px, calc(100% - 24px));
+}
+
+.sale-detail-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+  margin-bottom: 12px;
+}
+
+.sale-box{
+  border:1px solid #e5e7eb;
+  background:#ffffff;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.sale-items{
+  border:1px solid #e5e7eb;
+  background:#ffffff;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.sale-item-row{
+  display:grid;
+  grid-template-columns: 42px 1fr 90px 90px;
+  gap:10px;
+  align-items:center;
+  padding: 8px 0;
+  border-top:1px solid #f1f5f9;
+}
+.sale-item-row:first-child{ border-top:none; }
+
+.sale-item-img img{
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid #e5e7eb;
+}
+
+@media (max-width: 860px){
+  .sale-detail-grid{ grid-template-columns: 1fr; }
+  .sale-item-row{ grid-template-columns: 42px 1fr; }
+}
+
+.events-tools{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.events-date{
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  font-weight: 900;
+  color:#0f172a;
+}

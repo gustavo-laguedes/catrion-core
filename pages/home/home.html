@@ -1,0 +1,141 @@
+<section class="hero-grid">
+
+  <article class="hero-card hero-green" data-go="venda">
+    <div class="hero-inner">
+      <div>
+        <h2 class="hero-title">Vendas</h2>
+        <button class="hero-action">▶ Nova Venda</button>
+      </div>
+      <div class="hero-illu hero-illu--venda">
+  <img src="assets/botao-venda.png" alt="Vendas" class="hero-illu-img">
+</div>
+    </div>
+  </article>
+
+  <article class="hero-card hero-orange" data-go="produtos">
+    <div class="hero-inner">
+      <div>
+        <h2 class="hero-title">Produtos</h2>
+        <button class="hero-action">Gerenciar Itens</button>
+      </div>
+      <div class="hero-illu hero-illu--produtos">
+  <img src="assets/botao-produtos.png" alt="Produtos" class="hero-illu-img hero-illu-img--produtos">
+</div>
+    </div>
+  </article>
+
+  <article class="hero-card hero-blue" data-go="caixa">
+    <div class="hero-inner">
+      <div>
+        <h2 class="hero-title">Caixa</h2>
+        <button class="hero-action">Movimentar Caixa</button>
+      </div>
+      <div class="hero-illu hero-illu--caixa">
+  <img src="assets/botao-caixa.png" alt="Caixa" class="hero-illu-img hero-illu-img--caixa">
+</div>
+    </div>
+  </article>
+
+  <article class="hero-card hero-purple" data-go="relatorios">
+    <div class="hero-inner">
+      <div>
+        <h2 class="hero-title">Relatórios</h2>
+        <button class="hero-action">Ver Estatísticas</button>
+      </div>
+      <div class="hero-illu hero-illu--relatorios">
+  <img src="assets/botao-relatorios.png" alt="Relatórios" class="hero-illu-img hero-illu-img--relatorios">
+</div>
+    </div>
+  </article>
+
+</section>
+
+<section class="bottom-grid">
+  <div class="small-card" id="daySummaryCard">
+  <div class="small-title">
+    <span class="ico">🧾</span>Resumo do Dia
+    <span class="muted small" id="daySummaryDate" style="margin-left:8px;">—</span>
+  </div>
+  <div class="hr"></div>
+
+  <div class="small-row">
+    <span>Vendas:</span>
+    <span id="daySummarySales">R$ 0,00</span>
+  </div>
+
+  <div class="small-row">
+    <span>Clientes:</span>
+    <span id="daySummaryCustomers">0</span>
+  </div>
+</div>
+
+
+  <div class="small-card notifications-wide" id="notifyCard">
+  <div class="small-title">
+    <span class="ico">🔔</span>Notificações
+    <span class="muted small" id="notifyKpi" style="margin-left:8px;">—</span>
+  </div>
+  <div class="hr"></div>
+
+  <div class="notify" id="notifyPreview" style="cursor:pointer;">
+    </div>
+  </div>
+</div>
+
+</section>
+
+<!-- Modal: Cadastrar Cliente -->
+<div class="overlay hidden" id="clientModal">
+  <div class="modal-card" role="dialog" aria-modal="true">
+    <div class="modal-title">Cadastrar Cliente</div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label>Nome</label>
+        <input id="cName" type="text" placeholder="Ex.: Carla Guedes" maxlength="60" />
+      </div>
+
+      <div class="field">
+        <label>Telefone</label>
+        <input id="cPhone" type="text" placeholder="(xx) xxxxx-xxxx" maxlength="20" />
+      </div>
+
+      <div class="field">
+        <label>CPF</label>
+        <input id="cCpf" type="text" placeholder="000.000.000-00" maxlength="20" />
+      </div>
+
+      <div class="field">
+        <label>Observação</label>
+        <input id="cNote" type="text" placeholder="Opcional" maxlength="60" />
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btnClientCancel">Cancelar</button>
+      <button class="btn-primary" id="btnClientSave">Salvar</button>
+    </div>
+
+    <div class="modal-hint">
+      Dica: isso é mock (salva no navegador) — depois a gente joga no Firebase.
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Notificações (fora do clientModal) -->
+<div class="overlay hidden" id="notifyModal">
+  <div class="modal-card" role="dialog" aria-modal="true" style="max-width:820px;width:calc(100% - 28px);">
+    <div class="modal-title">Notificações</div>
+    <div class="modal-hint" id="notifyModalHint">—</div>
+
+    <div class="hr" style="margin:12px 0;"></div>
+
+    <div id="notifyModalBody"></div>
+
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btnNotifyClose">Fechar</button>
+    </div>
+  </div>
+</div>
+
+

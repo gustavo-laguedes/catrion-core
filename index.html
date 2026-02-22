@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CORE POS</title>
+
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <header class="topbar">
+  <div class="topbar-left">
+  <button class="topbar-logo-btn" data-go-home type="button" aria-label="Ir para o início">
+  <img src="assets/logo-topbar.png" class="topbar-logo-left" alt="Clube do Suplemento">
+</button>
+</div>
+
+  <div class="topbar-center">
+  <button class="topbar-logo-btn" data-go-home type="button" aria-label="Ir para o início">
+  <img src="assets/core-topbar1.png" class="topbar-logo-center" alt="CORE">
+</button>
+</div>
+
+  <div class="topbar-right">
+    <span id="userHello" class="hello">Olá!</span>
+    <button
+  class="topbar-icon home-btn"
+  data-go-home
+  title="Ir para a Home"
+  aria-label="Ir para a Home"
+  type="button"
+>
+  <svg
+  class="ico-home"
+  width="18"
+  height="18"
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="2.2"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+>
+  <!-- telhado -->
+  <path d="M4 10.5L12 4l8 6.5" />
+  <!-- corpo -->
+  <path d="M6.5 10.5V20h11V10.5" />
+  <!-- porta -->
+  <path d="M10 20v-6h4v6" />
+</svg>
+
+
+</button>
+
+
+    <button class="topbar-icon chat-btn" id="btnChat" title="Mensagens" aria-label="Mensagens">
+  💬
+  <span id="chatUnreadBadge" class="chat-badge hidden" aria-label="Mensagens não lidas"></span>
+</button>
+
+    <div class="divider"></div>
+    <button class="topbar-icon" title="Configurações" aria-label="Configurações" onclick="openAdminAuth()">⚙️</button>
+    <button class="topbar-icon" id="btnLogout" title="Sair" aria-label="Sair">
+  <span class="icon-power">⏻</span>
+</button>
+
+  </div>
+</header>
+  
+
+  <main id="app"></main>
+
+  <!-- ordem recomendada -->
+  <script src="shared/router.js"></script>
+
+  <script src="shared/auth.js"></script>
+  <script src="shared/audit.js"></script>
+
+  <!-- ✅ novo: CoreCash global -->
+  <script src="CoreCash.js"></script>
+
+   <!-- ✅ novo: Impressão global (para Venda + Caixa + Relatórios) -->
+  <script src="shared/receipt.js"></script>
+
+  <script type="module">
+  import { CoreStorage } from "./core/data/storage.js";
+  window.CoreStorage = CoreStorage;
+</script>
+
+
+  <script src="shared/productsRepo.js"></script>
+
+  <script src="shared/ui.js"></script>
+
+  <!-- =========================
+ MODAL: ACESSO ADMINISTRATIVO
+========================== -->
+<div id="adminAuthOverlay" class="core-overlay core-hidden">
+  <div class="core-modal admin-auth">
+
+    <h3>🔒 Acesso administrativo</h3>
+    <p class="muted">Senha do administrador</p>
+
+    <input
+      id="adminPasswordInput"
+      type="password"
+      placeholder="Digite a senha"
+      autocomplete="off"
+    />
+
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeAdminAuth()">Cancelar</button>
+      <button class="btn-primary" onclick="confirmAdminAuth()">Entrar</button>
+    </div>
+
+    <p id="adminAuthError" class="error-text hidden">
+      Senha incorreta.
+    </p>
+  </div>
+</div>
+
+<!-- =========================
+ MODAL: CONFIGURAÇÕES DO SISTEMA
+========================== -->
+<div id="systemConfigOverlay" class="core-overlay core-hidden">
+  <div class="core-modal system-config">
+
+
+    <div class="config-header">
+      <h3>⚙️ Configurações do Sistema</h3>
+      <button class="icon-btn" onclick="closeSystemConfig()">✕</button>
+    </div>
+
+    <div class="config-tabs">
+  <button class="tab active" data-tab="users" onclick="switchConfigTab('users')">Usuários</button>
+  <button class="tab" data-tab="machines" onclick="switchConfigTab('machines')">Maquininhas</button>
+</div>
+
+
+<!-- USUÁRIOS -->
+<div id="usersSection">
+
+  <button id="btnNewUser" class="btn-add">+ Novo usuário</button>
+
+  <div id="userForm" class="hidden form-box">
+    <input id="userName" placeholder="Nome do usuário">
+    
+    <select id="userRole">
+      <option value="FUNC">Funcionário</option>
+      <option value="ADMIN">Administrador</option>
+    </select>
+
+    <input id="userPass" type="password" placeholder="Senha">
+    
+    <button id="saveUser" class="btn-save">Salvar</button>
+  </div>
+
+  <div id="userList" class="list-box"></div>
+
+</div>
+
+<!-- MAQUININHAS -->
+<div id="machinesSection" class="hidden">
+
+  <button id="btnNewMachine" class="btn-add">+ Nova maquininha</button>
+
+  <div id="machineForm" class="hidden form-box">
+    <input id="machineName" placeholder="Nome da maquininha">
+
+    <div class="grid-rates">
+      <input placeholder="Débito (%)" data-rate="debito">
+      <input placeholder="Crédito 1x (%)" data-rate="1">
+      <input placeholder="Crédito 2x (%)" data-rate="2">
+      <input placeholder="Crédito 3x (%)" data-rate="3">
+      <input placeholder="Crédito 4x (%)" data-rate="4">
+      <input placeholder="Crédito 5x (%)" data-rate="5">
+      <input placeholder="Crédito 6x (%)" data-rate="6">
+      <input placeholder="Crédito 7x (%)" data-rate="7">
+      <input placeholder="Crédito 8x (%)" data-rate="8">
+      <input placeholder="Crédito 9x (%)" data-rate="9">
+      <input placeholder="Crédito 10x (%)" data-rate="10">
+      <input placeholder="Crédito 11x (%)" data-rate="11">
+      <input placeholder="Crédito 12x (%)" data-rate="12">
+    </div>
+
+    <button id="saveMachine" class="btn-save">Salvar</button>
+  </div>
+
+  <div id="machineList" class="list-box"></div>
+
+</div>
+
+  </div>
+</div>
+
+<!-- =========================
+ CHAT GLOBAL (1 sala / todos)
+========================== -->
+<div id="chatOverlay" class="core-overlay core-hidden">
+  <div class="core-modal chat-modal" role="dialog" aria-modal="true" aria-label="Chat interno">
+    <div class="chat-head">
+      <div class="chat-title">
+        <div class="t1">💬 Chat interno</div>
+        <div class="t2">Uma conversa para todos • avisos, recados e updates</div>
+      </div>
+
+      <div class="chat-actions">
+  <button id="btnChatClear" class="btn-ghost" type="button">Limpar chat</button>
+  <button id="btnChatClose" class="icon-btn" type="button" aria-label="Fechar">✕</button>
+</div>
+
+    </div>
+
+    <div id="chatList" class="chat-list"></div>
+
+    <div class="chat-compose">
+      <input id="chatInput" type="text" placeholder="Escreva uma mensagem..." autocomplete="off" />
+      <button id="btnChatSend" class="btn-primary" type="button">Enviar</button>
+    </div>
+
+    <div class="chat-foot muted">
+      Dica: Enter envia • Shift+Enter quebra linha (se quiser depois a gente evolui)
+    </div>
+  </div>
+</div>
+
+<!-- =========================
+  MODAL: Limpar chat (senha ADMIN)
+========================== -->
+<div id="chatClearOverlay" class="core-overlay core-hidden">
+  <div class="core-modal chat-clear-modal" role="dialog" aria-modal="true" aria-label="Limpar chat">
+    <div class="chat-clear-head">
+      <div>
+        <div class="chat-clear-title">Limpar chat</div>
+        <div class="chat-clear-sub">Somente ADMIN pode apagar o histórico.</div>
+      </div>
+      <button id="btnChatClearClose" class="icon-btn" type="button" aria-label="Fechar">✕</button>
+    </div>
+
+    <div class="chat-clear-body">
+      <label class="chat-clear-label" for="chatClearPass">Senha do ADMIN</label>
+      <input id="chatClearPass" type="password" placeholder="Digite a senha do ADMIN" autocomplete="current-password" />
+
+      <div id="chatClearError" class="chat-clear-error hidden">Senha inválida.</div>
+
+      <div class="chat-clear-warn">
+        Atenção: isso apaga <b>todas</b> as mensagens do chat para todos.
+      </div>
+    </div>
+
+    <div class="chat-clear-actions">
+      <button id="btnChatClearCancel" class="btn-ghost" type="button">Cancelar</button>
+      <button id="btnChatClearConfirm" class="btn-danger" type="button">Apagar tudo</button>
+    </div>
+  </div>
+</div>
+
+
+  
+  <script src="app.js"></script>
+
+<footer class="lowbar">
+  <div class="lowbar-content">
+    <div class="lowbar-text">Developed by Catrion</div>
+
+    <img
+      src="assets/catrion-lowbar.png"
+      alt="Catrion"
+      class="lowbar-logo"
+    />
+
+    <div class="lowbar-version">version: 240126 - v0</div>
+  </div>
+</footer>
+
+
+</body>
+</html>

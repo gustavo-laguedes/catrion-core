@@ -1,0 +1,1078 @@
+/* pages/produtos/produtos.css */
+
+/* ===== Página / shell ===== */
+.products-page{
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 18px 18px 26px;
+}
+.products-shell{
+  border: 1px solid rgba(0,0,0,.08);
+  background: rgba(255,255,255,.55);
+  backdrop-filter: blur(10px);
+  border-radius: 18px;
+  box-shadow: 0 14px 30px rgba(0,0,0,.06);
+  padding: 16px;
+}
+.muted{ opacity: .72; }
+
+/* ===== Header ===== */
+.products-header{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 2px 10px;
+}
+.products-header .left h1{
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+.products-header .left p{ margin: 6px 0 0; font-size: 13px; }
+.products-header .right{ display:flex; gap:10px; align-items:center; }
+
+/* ===== Inputs / botões ===== */
+.products-page .inp{
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.70);
+  outline: none;
+  min-width: 0;
+}
+.products-page .inp:focus{
+  border-color: rgba(20,90,255,.35);
+  box-shadow: 0 0 0 3px rgba(20,90,255,.10);
+}
+.products-page .btn{
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.72);
+  box-shadow: 0 1px 0 rgba(0,0,0,.04);
+  cursor: pointer;
+}
+.products-page .btn.secondary{ background: rgba(255,255,255,.55); }
+.products-page .btn.danger{
+  border-color: rgba(255,80,80,.35);
+  background: rgba(255,80,80,.10);
+}
+.products-page #btnNewProduct.btn{
+  background: rgba(20,90,255,.12);
+  border-color: rgba(20,90,255,.22);
+  font-weight: 650;
+}
+
+/* ===== Barra de filtros ===== */
+.products-toolbar{
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,.08);
+  background: rgba(255,255,255,.55);
+  display: grid;
+  grid-template-columns: 1.6fr .7fr .7fr;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ===== Tabela ===== */
+.products-table-wrap{
+  margin-top: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(0,0,0,.08);
+  background: rgba(255,255,255,.75);
+  overflow: hidden;
+}
+.products-table{ width: 100%; border-collapse: collapse; }
+.products-table thead th{
+  font-size: 12px;
+  letter-spacing: .2px;
+  text-transform: uppercase;
+  opacity: .78;
+  padding: 12px 12px;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+  background: rgba(0,0,0,.03);
+  user-select: none;
+  cursor: pointer;
+}
+.products-table tbody td{
+  padding: 12px 12px;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  font-size: 13.5px;
+}
+.products-table tbody tr:hover{ background: rgba(20,90,255,.05); }
+.products-table th[data-sort]::after{
+  content: "⇅";
+  font-size: 12px;
+  opacity: .35;
+  margin-left: 8px;
+}
+.products-table .thumb-col{ width: 64px; }
+.products-table td.thumb-col{ padding-right: 6px; }
+.thumb{
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid rgba(0,0,0,.12);
+  background: rgba(0,0,0,.03);
+  display: block;
+}
+.products-table .pill{
+  display: inline-flex;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(0,0,0,.03);
+}
+.products-table .pill.low{
+  border-color: rgba(255,165,0,.35);
+  background: rgba(255,165,0,.12);
+}
+.products-table .pill.off{ opacity: .65; }
+.products-table th.actions,
+.products-table td.actions{ width: 190px; text-align: right; }
+.row-actions{ display:flex; gap:8px; justify-content:flex-end; }
+.icon-btn{
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.65);
+  cursor: pointer;
+}
+.icon-btn:hover{ background: rgba(20,90,255,.08); }
+.empty{ padding: 18px; text-align:center; opacity:.70; }
+
+/* ===== Modais (tema claro) ===== */
+.modal::backdrop{ background: rgba(0,0,0,.45); }
+.modal{ border:none; padding:0; background:transparent; }
+
+.modal-card{
+  width: min(860px, 94vw);
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.92);
+  color: #111;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 18px 40px rgba(0,0,0,.18);
+}
+
+.modal-head, .modal-foot{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+
+.modal-foot{
+  border-bottom: none;
+  border-top: 1px solid rgba(0,0,0,.08);
+
+  /* >>> força botões no canto inferior direito */
+  justify-content: flex-end;
+}
+
+/* Rodapé grudado embaixo durante o scroll (somente no modal Novo Produto) */
+#dlgProduct .modal-foot{
+  position: sticky;
+  bottom: 0;
+  background: rgba(255,255,255,.92);
+  z-index: 5;
+}
+
+
+.modal-foot .spacer{ flex: 1; }
+
+.modal-body{ padding: 14px; }
+
+.grid{
+  display: grid;
+  gap: 12px;
+}
+.grid label{
+  display: grid;
+  gap: 8px;          /* status igual aos outros */
+  font-size: 13px;
+}
+.grid label.full{ grid-column: 1 / -1; }
+
+/* Grid do modal de produto: 2 colunas fixas */
+#dlgProduct .modal-body.grid{
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 860px){
+  #dlgProduct .modal-body.grid{
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.err{ color: rgba(200,40,40,.90); min-height:16px; }
+
+.icon{
+  margin-left: auto;
+  border: 1px solid rgba(0,0,0,.12);
+  background: rgba(0,0,0,.04);
+  border-radius: 12px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+/* Última linha: foto ao lado do status (coluna direita) */
+.photo-field{
+  display: grid;
+  justify-items: center;   /* <<< era end */
+  align-content: center;   /* <<< era start */
+  gap: 8px;
+}
+
+
+.photo-pick{
+  width: 86px;            /* tamanho “médio” (ajustável) */
+  height: 86px;
+  border-radius: 18px;
+  border: 1px solid rgba(0,0,0,.12);
+  background: rgba(0,0,0,.03);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+
+.photo-pick:hover{
+  box-shadow: 0 0 0 3px rgba(20,90,255,.10);
+  border-color: rgba(20,90,255,.25);
+}
+
+.photo-img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+.photo-empty{
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .4px;
+  color: rgba(0,0,0,.45);
+}
+
+.photo-x{
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,.12);
+  background: rgba(255,255,255,.85);
+  cursor: pointer;
+  display: none;
+  line-height: 22px;
+}
+.photo-x:hover{
+  background: rgba(255,80,80,.12);
+  border-color: rgba(255,80,80,.25);
+}
+
+
+/* Status centralizado embaixo com largura controlada */
+.status-field select{
+  width: min(360px, 92%);
+}
+
+/* Responsivo */
+@media (max-width: 860px){
+  .products-toolbar{ grid-template-columns: 1fr; }
+  .products-header{ flex-direction: column; align-items: flex-start; }
+  .products-header .right{ width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+  .grid-product{ grid-template-columns: 1fr; }
+  .mid-spacer{ display:none; }
+  .status-field select{ width: 100%; }
+}
+
+/* FORÇA o grid do modal de produto em 2 colunas */
+#dlgProduct .modal-body.grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Em telas pequenas, aí sim vira 1 coluna */
+@media (max-width: 860px){
+  #dlgProduct .modal-body.grid{
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Status e select padronizados */
+#dlgProduct .modal-body.grid label{
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+#dlgProduct select.inp{
+  height: 36px;
+  padding: 0 12px;
+}
+
+/* Foto na coluna direita, alinhada à direita */
+#dlgProduct .photo-field{
+  display: grid;
+  justify-items: center;   /* <<< era end */
+  align-content: center;   /* <<< era start */
+  gap: 8px;
+}
+
+
+/* Miniatura tamanho “médio” */
+#dlgProduct .photo-pick{
+  width: 86px;
+  height: 86px;
+  border-radius: 18px;
+  border: 1px solid rgba(0,0,0,.12);
+  background: rgba(0,0,0,.03);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  cursor: pointer;
+  position: relative;
+}
+
+#dlgProduct .photo-img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+#dlgProduct .photo-empty{
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(0,0,0,.45);
+}
+
+#dlgProduct .photo-x{
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,.12);
+  background: rgba(255,255,255,.85);
+  cursor: pointer;
+  display: none;
+}
+
+/* Centraliza a miniatura na coluna direita do modal produto */
+#dlgProduct .photo-field{
+  justify-items: center;  /* antes estava end */
+}
+
+/* Modal de movimentação sempre em 1 coluna */
+#dlgMove .modal-body.grid{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+/* ===== MOVIMENTAÇÃO (dlgMove) ===== */
+#dlgMove #mvBody{
+  display: grid;
+  gap: 12px;
+}
+
+/* topo (tipo) */
+#dlgMove .mv-top{
+  display: grid;
+}
+
+/* seções */
+#dlgMove .mv-section{
+  display: grid;
+  gap: 12px;
+}
+
+/* card de itens */
+#dlgMove .mv-card{
+  border: 1px solid rgba(0,0,0,.08);
+  background: rgba(255,255,255,.70);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+#dlgMove .mv-row{
+  display: flex;
+  gap: 10px;
+  align-items: end;
+}
+
+#dlgMove .mv-row .grow{ flex: 1; }
+
+#dlgMove .mv-items{
+  margin-top: 12px;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255,255,255,.75);
+}
+
+#dlgMove .mv-items-head{
+  display: grid;
+  grid-template-columns: 1fr 90px 140px 44px;
+  gap: 10px;
+  padding: 10px 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .2px;
+  opacity: .75;
+  background: rgba(0,0,0,.03);
+  border-bottom: 1px solid rgba(0,0,0,.06);
+}
+
+#dlgMove .mv-items-list{
+  max-height: 190px; /* scroll interno */
+  overflow: auto;
+}
+
+#dlgMove .mv-item{
+  display: grid;
+  grid-template-columns: 1fr 90px 140px 44px;
+  gap: 10px;
+  padding: 10px;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  align-items: center;
+}
+#dlgMove .mv-item:last-child{ border-bottom: none; }
+
+#dlgMove .mv-item .mini{
+  opacity: .75;
+  font-size: 12px;
+}
+
+#dlgMove .mv-item .rm{
+  height: 34px;
+  width: 44px;
+  padding: 0;
+  border-radius: 12px;
+  border: 1px solid rgba(255,80,80,.28);
+  background: rgba(255,80,80,.10);
+  cursor: pointer;
+}
+
+/* grid de campos em 2 colunas */
+#dlgMove .mv-grid2{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+#dlgMove .mv-grid2 .full{ grid-column: 1 / -1; }
+
+/* total */
+#dlgMove .mv-total{
+  border: 1px solid rgba(0,0,0,.08);
+  background: rgba(255,255,255,.70);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: grid;
+  align-content: center;
+}
+#dlgMove .mv-total-label{
+  font-size: 12px;
+  opacity: .7;
+  text-transform: uppercase;
+  letter-spacing: .2px;
+}
+#dlgMove .mv-total-value{
+  font-size: 18px;
+  font-weight: 750;
+  margin-top: 4px;
+}
+
+/* responsivo */
+@media (max-width: 860px){
+  #dlgMove .mv-row{ flex-direction: column; align-items: stretch; }
+  #dlgMove .mv-grid2{ grid-template-columns: 1fr; }
+  #dlgMove .mv-items-head,
+  #dlgMove .mv-item{
+    grid-template-columns: 1fr 70px 120px 44px;
+  }
+}
+
+/* Movimentação: selects de produto e campos longos */
+#dlgMove .mv-row select.inp,
+#dlgMove .mv-grid2 select.inp{
+  width: 100%;
+  min-width: 320px; /* aumenta a sensação de largura */
+}
+
+#dlgMove .mv-grid2 input.inp{
+  width: 100%;
+}
+
+/* Observação mais comprida (full já faz, mas reforça) */
+#dlgMove .mv-grid2 .full input.inp{
+  width: 100%;
+}
+
+/* Total mais compacto e centralizado */
+#dlgMove .mv-total{
+  justify-self: end;          /* encosta na direita */
+  width: 180px;               /* menor */
+  text-align: center;         /* centraliza texto */
+}
+
+#dlgMove .mv-total-label{
+  text-align: center;
+}
+
+#dlgMove .mv-total-value{
+  text-align: center;
+}
+
+/* RESPEITAR hidden no dlgMove (senão aparece tudo) */
+#dlgMove .mv-section[hidden]{
+  display: none !important;
+}
+
+#dlgMove #mv_hint[hidden]{
+  display: none !important;
+}
+
+/* Compra: deixar a busca de produto bem mais comprida */
+#dlgMove #mv_purchase .mv-row{
+  align-items: center; /* melhora o alinhamento do input e do botão */
+}
+
+#dlgMove #mv_purchase .mv-row .grow{
+  flex: 1 1 auto;      /* deixa o label crescer */
+}
+
+#dlgMove #mv_purchase #mv_p_query{
+  width: 100%;         /* input ocupa tudo dentro do grow */
+  min-width: 520px;    /* força ficar “comprido” */
+}
+
+/* Compra: alinhar botão "Adicionar" com o input (mesma linha) */
+#dlgMove #mv_purchase .mv-row{
+  align-items: flex-end; /* alinha na base do input */
+}
+
+#dlgMove #mv_purchase .mv-row .btn{
+  height: 36px;          /* garante mesma altura do input */
+}
+
+/* Clique em Nome/Foto */
+.products-table td.name-cell,
+.products-table td.thumb-cell{
+  cursor: pointer;
+}
+.products-table td.name-cell:hover{
+  text-decoration: underline;
+}
+
+/* Modal Product View: inputs read-only com cara de cinza */
+#dlgProductView .pv-inp[disabled],
+#dlgProductView .pv-inp.pv-ro{
+  background: rgba(0,0,0,.03);
+  border-color: rgba(0,0,0,.08);
+  color: rgba(0,0,0,.75);
+}
+
+/* Foto no modal view */
+#dlgProductView .pv-photoBox{
+  width: 92px;
+  height: 92px;
+  border-radius: 18px;
+  border: 1px solid rgba(0,0,0,.12);
+  background: rgba(0,0,0,.03);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+#dlgProductView .pv-photoBox img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+#dlgProductView .pv-photoBox .has{
+  display: block;
+}
+#dlgProductView #pv_photoEmpty{
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .4px;
+  color: rgba(0,0,0,.45);
+}
+
+/* Coluna Ações: texto + botão */
+.products-table td.actions .row-actions{
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.products-table td.actions .hint{
+  font-size: 12px;
+  opacity: .75;
+  text-align: right;
+  line-height: 1.2;
+}
+
+/* Centralizar o cabeçalho e conteúdo de AÇÕES */
+.products-table th.actions,
+.products-table td.actions{
+  text-align: center;
+}
+
+.products-table td.actions .row-actions{
+  align-items: center;
+}
+
+.products-table td.actions .hint{
+  text-align: center;
+  font-weight: 650;
+  opacity: 1;
+}
+
+/* Aviso de ações com cara de alerta/ok */
+.products-table td.actions .hint{
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(0,0,0,.03);
+  display: inline-block;
+  font-size: 12px;
+}
+
+.products-table td.actions .hint.ok{
+  background: rgba(20,90,255,.06);
+  border-color: rgba(20,90,255,.18);
+}
+
+.products-table td.actions .hint.warn{
+  background: rgba(255,165,0,.12);
+  border-color: rgba(255,165,0,.28);
+}
+
+.products-table td.actions .hint.danger{
+  background: rgba(255,80,80,.12);
+  border-color: rgba(255,80,80,.28);
+}
+
+.products-table thead th[data-sort].is-sort::after{
+  content: attr(data-dir);
+  margin-left: 8px;
+  font-size: 12px;
+  opacity: .7;
+}
+
+.products-table thead th[data-sort][data-dir="asc"]::after{ content: "↑"; }
+.products-table thead th[data-sort][data-dir="desc"]::after{ content: "↓"; }
+
+
+/* Autocomplete bonito (igual venda) */
+#dlgMove .ac{
+  position: relative;
+  width: 100%;
+}
+
+#dlgMove .ac .inp{
+  width: 100%;
+}
+
+#dlgMove .ac-menu{
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(255,255,255,.98);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.12);
+  overflow: hidden;
+  max-height: 260px;
+}
+
+#dlgMove .ac-item{
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+#dlgMove .ac-item:hover,
+#dlgMove .ac-item.is-active{
+  background: rgba(20,90,255,.08);
+}
+
+#dlgMove .ac-thumb{
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(0,0,0,.03);
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: rgba(0,0,0,.45);
+}
+
+#dlgMove .ac-thumb img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+#dlgMove .ac-main{
+  display: grid;
+  gap: 2px;
+}
+
+#dlgMove .ac-name{
+  font-weight: 700;
+  font-size: 13px;
+}
+
+#dlgMove .ac-sub{
+  font-size: 12px;
+  opacity: .7;
+}
+
+#dlgMove .ac-sku{
+  font-size: 12px;
+  font-weight: 750;
+  opacity: .75;
+  white-space: nowrap;
+}
+
+.cat-row{
+  display:flex;
+  gap:8px;
+  align-items:center; /* ✅ isso resolve o desalinhamento vertical */
+}
+
+.cat-row input{
+  flex:1;
+}
+
+.cat-row .btn{
+  min-width:42px;
+  height:40px;              /* ✅ garante mesma altura do input */
+  display:flex;              /* ✅ centraliza o "+" */
+  align-items:center;
+  justify-content:center;
+  padding:0 12px;
+}
+
+/* manager flutuante/embutido */
+.cat-manager.hidden{ display:none; }
+
+.cat-manager{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.35);
+  display:grid;
+  place-items:center;
+  z-index:9999;
+}
+
+.cat-box{
+  width:min(520px, 92vw);
+  background:#fff;
+  border-radius:18px;
+  border:1px solid rgba(15,23,42,.10);
+  box-shadow:0 24px 60px rgba(15,23,42,.22);
+  padding:14px;
+}
+
+.cat-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.cat-title{
+  font-weight:950;
+  color:#0f172a;
+}
+
+.cat-add{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+.cat-add input{
+  flex:1;
+  height:40px;
+}
+
+.cat-list{
+  margin-top:12px;
+  display:grid;
+  gap:8px;
+  max-height:240px;
+  overflow:auto;
+}
+
+.cat-row-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  border:1px solid rgba(15,23,42,.10);
+  border-radius:14px;
+  padding:10px 12px;
+}
+
+.cat-foot{
+  margin-top:10px;
+  font-size:12px;
+  font-weight:800;
+  color:#64748b;
+}
+
+
+.tax-card { max-width: 520px; }
+.tax-body { display: grid; gap: 12px; }
+
+.tax-list {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 14px;
+  background: rgba(0,0,0,.02);
+}
+
+.tax-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  background: white;
+  border: 1px solid rgba(0,0,0,.06);
+}
+
+.tax-item:hover { background: rgba(0,0,0,.03); }
+
+.tax-item .t {
+  font-weight: 600;
+}
+
+.tax-item .x {
+  opacity: .55;
+  font-size: 12px;
+}
+
+.tax-new {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+/* ===== Modal Novo Produto: layout FINAL (na ordem pedida) ===== */
+#dlgProduct .modal-body.grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+  align-items: start;
+}
+
+/* qualquer coisa com .full ocupa a linha inteira */
+#dlgProduct .modal-body.grid .full{
+  grid-column: 1 / -1;
+}
+
+/* Categoria/Subs sem botão +: campo ocupa 100% */
+#dlgProduct .cat-row{
+  display: block;         /* remove a coluna fantasma */
+}
+
+#dlgProduct .cat-row .inp,
+#dlgProduct .cat-row input,
+#dlgProduct .cat-row select{
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Foto centralizada na coluna direita */
+#dlgProduct .photo-field{
+  grid-column: auto;
+  display: grid;
+  justify-items: center;     /* CENTRALIZA */
+  align-content: center;     /* CENTRALIZA */
+  gap: 8px;
+}
+
+
+/* tamanho da foto */
+#dlgProduct .photo-pick{
+  width: 86px;
+  height: 86px;
+  border-radius: 18px;
+}
+
+/* Esconde todos os botões "+" (categoria e subs) */
+#prdCatAdd,
+#prdSub1Add,
+#prdSub2Add,
+#prdSub3Add,
+#prdSub4Add{
+  display: none !important;
+}
+
+
+/* Garante que TODOS os campos do modal "Novo produto" ocupem 100% da coluna */
+#dlgProduct .modal-body.grid label > .inp,
+#dlgProduct .modal-body.grid label > input,
+#dlgProduct .modal-body.grid label > select{
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ===== Linha final: Status + Foto (sem buraco) ===== */
+#dlgProduct .status-photo-row{
+  display: grid;
+  grid-template-columns: 1fr 140px; /* coluna da foto fixa */
+  gap: 16px;
+  align-items: end;
+  grid-column: 1 / -1;            /* ocupa as 2 colunas da grade principal */
+}
+
+/* status ocupa a coluna grande */
+#dlgProduct .status-photo-row .status-field{
+  width: 100%;
+}
+
+/* foto sempre centralizada dentro da coluna fixa */
+#dlgProduct .status-photo-row .photo-field{
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  width: 140px;                   /* casa com a coluna */
+}
+
+/* foto um pouco maior pra ficar “proporcional” */
+#dlgProduct .status-photo-row .photo-pick{
+  width: 96px;
+  height: 96px;
+  border-radius: 20px;
+}
+
+/* ===== AJUSTES FINAIS: MODAL NOVO PRODUTO ===== */
+
+/* dá mais “respiro” e deixa o modal mais largo */
+#dlgProduct .modal-card{
+  width: min(920px, 94vw);
+}
+
+/* grid consistente e mais bonito */
+#dlgProduct .modal-body.grid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 18px;
+  align-items: start;
+}
+
+@media (max-width: 860px){
+  #dlgProduct .modal-body.grid{
+    grid-template-columns: 1fr;
+  }
+}
+
+/* labels com o MESMO espaçamento (resolve “colado” da categoria/subs) */
+#dlgProduct .modal-body.grid label{
+  display: grid;
+  gap: 10px;
+  font-size: 13px;
+}
+
+/* full ocupa a linha inteira */
+#dlgProduct .modal-body.grid .full{
+  grid-column: 1 / -1;
+}
+
+/* garante que inputs/selects ocupem 100% SEM exceção */
+#dlgProduct .modal-body.grid .inp{
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* FOTO: centralizada de verdade na célula */
+#dlgProduct .photo-field{
+  width: 100%;
+  display: grid;
+  place-items: center;
+  align-content: start;
+  gap: 10px;
+}
+
+/* rodapé sempre no canto inferior direito */
+#dlgProduct .modal-foot{
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* ===== Tax picker: botão de excluir ===== */
+.tax-item{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tax-item .right{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tax-del{
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,80,80,.25);
+  background: rgba(255,80,80,.10);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.tax-del:hover{
+  background: rgba(255,80,80,.16);
+  border-color: rgba(255,80,80,.35);
+}
+
+@media (max-width: 860px){
+  #dlgProductView .modal-body.grid{
+    grid-template-columns: 1fr;
+  }
+}

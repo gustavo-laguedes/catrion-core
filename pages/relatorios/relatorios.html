@@ -1,0 +1,82 @@
+<div class="small-card">
+  <div class="small-title"><span class="ico">📊</span> Relatórios</div>
+  <div class="hr"></div>
+
+  <div class="reports-grid">
+    <button class="report-tile" data-view="dashboard">
+      <div class="rt-ico">📈</div>
+      <div class="rt-title">Resumo de Vendas</div>
+      <div class="rt-sub">KPIs + gráfico por período</div>
+    </button>
+
+    <button class="report-tile" data-view="vendas">
+      <div class="rt-ico">🧾</div>
+      <div class="rt-title">Vendas</div>
+      <div class="rt-sub">Por período, por usuário</div>
+    </button>
+
+    <button class="report-tile" data-view="vendedores">
+  <div class="rt-ico">🏆</div>
+  <div class="rt-title">Vendedores</div>
+  <div class="rt-sub">Ranking por período</div>
+</button>
+
+    <button class="report-tile" data-view="produtos">
+  <div class="rt-ico">📦</div>
+  <div class="rt-title">Produtos</div>
+  <div class="rt-sub">Ranking por período</div>
+</button>
+
+
+    <button class="report-tile" data-view="clientes">
+      <div class="rt-ico">👤</div>
+      <div class="rt-title">Clientes</div>
+      <div class="rt-sub">Ranking e histórico</div>
+    </button>
+
+    <button class="report-tile" data-view="estoque">
+  <div class="rt-ico">📦</div>
+  <div class="rt-title">Estoque</div>
+  <div class="rt-sub">Movimentações (compra, perda, ajuste)</div>
+</button>
+
+<button class="report-tile" data-view="cupons">
+  <div class="rt-ico">🏷️</div>
+  <div class="rt-title">Cupons</div>
+  <div class="rt-sub">Ranking por desconto concedido</div>
+</button>
+
+<button class="report-tile" data-view="contasPagar">
+  <div class="rt-ico">💸</div>
+  <div class="rt-title">Contas a pagar</div>
+  <div class="rt-sub">Alertas, cadastro e pagamentos</div>
+</button>
+
+<button class="report-tile" data-view="resultado">
+  <div class="rt-ico">📊</div>
+  <div class="rt-title">Lucro Real</div>
+  <div class="rt-sub">Lucro vendas − contas pagas + gráfico</div>
+</button>
+
+
+
+  </div>
+
+  <div class="hr" style="margin-top:14px;"></div>
+
+  <div id="reportContent"></div>
+
+  <!-- Modal genérico (detalhes venda / cliente) -->
+  <div class="r-overlay hidden" id="rModal">
+    <div class="r-modal">
+      <div class="r-modal-head">
+        <div class="r-modal-title" id="rModalTitle">Detalhes</div>
+        <button class="r-x" id="rModalClose">✕</button>
+      </div>
+      <div class="r-modal-body" id="rModalBody"></div>
+      <div class="r-modal-actions">
+        <button class="r-btn" id="rModalOk">Fechar</button>
+      </div>
+    </div>
+  </div>
+</div>
