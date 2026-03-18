@@ -1,8 +1,4 @@
-// shared/env.js
-// Ambiente local (NÃO subir com chaves privadas).
-// A anon key do Supabase é "public", mas mesmo assim vamos manter padrão limpo.
-
-window.__ENV__ = window.__ENV__ || {};
-
-window.__ENV__.SUPABASE_URL = "";
-window.__ENV__.SUPABASE_ANON_KEY = "";
+window.ENV = {
+  SUPABASE_URL: "https://ztvgwzkclrvewsjjdcjl.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_1IdWeMpdqZ_VE0pIomib_A_d1oAeZ23"
+};

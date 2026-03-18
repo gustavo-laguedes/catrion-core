@@ -1,158 +1,464 @@
 /* pages/produtos/produtos.css */
 
-/* ===== Página / shell ===== */
-.products-page{
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 18px 18px 26px;
-}
-.products-shell{
-  border: 1px solid rgba(0,0,0,.08);
-  background: rgba(255,255,255,.55);
-  backdrop-filter: blur(10px);
-  border-radius: 18px;
-  box-shadow: 0 14px 30px rgba(0,0,0,.06);
-  padding: 16px;
-}
-.muted{ opacity: .72; }
+/* =========================================================
+   PRODUTOS — CSS LIMPO
+   ========================================================= */
 
-/* ===== Header ===== */
+:root{
+  --pd-text: #0f172a;
+  --pd-sub: #64748b;
+  --pd-line: rgba(15,23,42,.08);
+  --pd-head: rgba(15,23,42,.035);
+  --pd-white: rgba(255,255,255,.82);
+  --pd-white-2: rgba(255,255,255,.70);
+  --pd-blue: #1d4ed8;
+  --pd-warn: #9a6700;
+  --pd-danger: #b42318;
+}
+
+/* =========================================================
+   PÁGINA
+   ========================================================= */
+.products-page{
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 6px 6px 24px 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.muted{
+  opacity: .72;
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
 .products-header{
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding: 6px 2px 10px;
+  gap: 16px;
+  padding: 0 0 2px;
 }
+
 .products-header .left h1{
   margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
+  font-size: 36px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -.8px;
+  color: var(--pd-text);
 }
-.products-header .left p{ margin: 6px 0 0; font-size: 13px; }
-.products-header .right{ display:flex; gap:10px; align-items:center; }
 
-/* ===== Inputs / botões ===== */
+.products-header .left p{
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--pd-sub);
+}
+
+.products-header .right{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding-top: 4px;
+}
+
+/* =========================================================
+   INPUTS / BOTÕES
+   ========================================================= */
 .products-page .inp{
-  height: 36px;
-  padding: 0 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(0,0,0,.10);
-  background: rgba(255,255,255,.70);
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 13px;
+  border: 1px solid rgba(15,23,42,.10);
+  background: rgba(255,255,255,.86);
   outline: none;
   min-width: 0;
+  color: var(--pd-text);
+  box-sizing: border-box;
 }
+
 .products-page .inp:focus{
-  border-color: rgba(20,90,255,.35);
+  border-color: rgba(20,90,255,.32);
   box-shadow: 0 0 0 3px rgba(20,90,255,.10);
 }
+
 .products-page .btn{
-  height: 36px;
-  padding: 0 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(0,0,0,.10);
-  background: rgba(255,255,255,.72);
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(15,23,42,.10);
+  background: rgba(255,255,255,.82);
   box-shadow: 0 1px 0 rgba(0,0,0,.04);
   cursor: pointer;
+  font-weight: 700;
 }
-.products-page .btn.secondary{ background: rgba(255,255,255,.55); }
+
+.products-page .btn.secondary{
+  background: rgba(255,255,255,.62);
+}
+
 .products-page .btn.danger{
   border-color: rgba(255,80,80,.35);
   background: rgba(255,80,80,.10);
 }
+
 .products-page #btnNewProduct.btn{
-  background: rgba(20,90,255,.12);
-  border-color: rgba(20,90,255,.22);
-  font-weight: 650;
+  background: linear-gradient(180deg, rgba(20,90,255,.13), rgba(20,90,255,.09));
+  border-color: rgba(20,90,255,.20);
+  font-weight: 800;
 }
 
-/* ===== Barra de filtros ===== */
+/* =========================================================
+   TOOLBAR
+   ========================================================= */
 .products-toolbar{
-  margin-top: 10px;
-  padding: 10px;
-  border-radius: 14px;
-  border: 1px solid rgba(0,0,0,.08);
-  background: rgba(255,255,255,.55);
+  padding: 10px 12px;
+  border-radius: 18px;
+  border: 1px solid var(--pd-line);
+  background: var(--pd-white-2);
+  box-shadow: 0 10px 24px rgba(15,23,42,.04);
   display: grid;
-  grid-template-columns: 1.6fr .7fr .7fr;
+  grid-template-columns: minmax(320px, 1.8fr) minmax(180px, .8fr) minmax(220px, .9fr);
   gap: 10px;
   align-items: center;
 }
 
-/* ===== Tabela ===== */
+/* =========================================================
+   TABELA
+   ========================================================= */
 .products-table-wrap{
-  margin-top: 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(0,0,0,.08);
-  background: rgba(255,255,255,.75);
+  width: 100%;
+  border-radius: 20px;
+  border: 1px solid var(--pd-line);
+  background: var(--pd-white);
+  box-shadow: 0 14px 28px rgba(15,23,42,.05);
   overflow: hidden;
 }
-.products-table{ width: 100%; border-collapse: collapse; }
+
+.products-table{
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.products-table thead,
+.products-table thead tr{
+  background: var(--pd-head);
+}
+
 .products-table thead th{
   font-size: 12px;
-  letter-spacing: .2px;
+  letter-spacing: .18px;
   text-transform: uppercase;
   opacity: .78;
-  padding: 12px 12px;
-  border-bottom: 1px solid rgba(0,0,0,.08);
-  background: rgba(0,0,0,.03);
+  padding: 14px 12px;
+  border-bottom: 1px solid rgba(15,23,42,.07);
+  background: transparent;
   user-select: none;
   cursor: pointer;
+  vertical-align: middle;
+  white-space: nowrap;
+  text-align: center;
+  color: #334155;
+  font-weight: 800;
 }
+
+.products-table thead th:first-child{
+  padding-left: 16px;
+}
+
+.products-table thead th:last-child{
+  padding-right: 18px;
+}
+
 .products-table tbody td{
-  padding: 12px 12px;
-  border-bottom: 1px solid rgba(0,0,0,.06);
+  padding: 14px 12px;
+  border-bottom: none;
   font-size: 13.5px;
+  vertical-align: middle;
+  text-align: center;
+  color: var(--pd-text);
+  background: transparent;
 }
-.products-table tbody tr:hover{ background: rgba(20,90,255,.05); }
+
+.products-table tbody tr:hover{
+  background: transparent;
+}
+
+.products-table tbody tr:last-child td{
+  border-bottom: none;
+}
+
+/* Ordenação */
 .products-table th[data-sort]::after{
   content: "⇅";
-  font-size: 12px;
-  opacity: .35;
-  margin-left: 8px;
+  font-size: 11px;
+  opacity: .28;
+  margin-left: 7px;
 }
-.products-table .thumb-col{ width: 64px; }
-.products-table td.thumb-col{ padding-right: 6px; }
+
+.products-table thead th[data-sort].is-sort::after{
+  content: attr(data-dir);
+  margin-left: 7px;
+  font-size: 11px;
+  opacity: .7;
+}
+
+.products-table thead th[data-sort][data-dir="asc"]::after{
+  content: "↑";
+}
+
+.products-table thead th[data-sort][data-dir="desc"]::after{
+  content: "↓";
+}
+
+/* =========================================================
+   LARGURAS DAS COLUNAS
+   ========================================================= */
+.products-table th:nth-child(1),
+.products-table td:nth-child(1){
+  width: 6%;
+}
+
+.products-table th:nth-child(2),
+.products-table td:nth-child(2){
+  width: 24%;
+  text-align: left;
+}
+
+.products-table th:nth-child(3),
+.products-table td:nth-child(3){
+  width: 9%;
+}
+
+.products-table th:nth-child(4),
+.products-table td:nth-child(4),
+.products-table th:nth-child(5),
+.products-table td:nth-child(5),
+.products-table th:nth-child(6),
+.products-table td:nth-child(6){
+  width: 8%;
+}
+
+.products-table th:nth-child(7),
+.products-table td:nth-child(7){
+  width: 7%;
+}
+
+.products-table th:nth-child(8),
+.products-table td:nth-child(8){
+  width: 6%;
+}
+
+.products-table th:nth-child(9),
+.products-table td:nth-child(9){
+  width: 6%;
+  padding-left: 30px;
+}
+
+/* =========================================================
+   THUMB
+   ========================================================= */
+.products-table th.thumb-col,
+.products-table td.thumb-col{
+  text-align: center;
+}
+
+.products-table td.thumb-col{
+  padding-right: 4px;
+}
+
 .thumb{
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   object-fit: cover;
-  border: 1px solid rgba(0,0,0,.12);
-  background: rgba(0,0,0,.03);
+  border: 1px solid rgba(15,23,42,.10);
+  background: rgba(15,23,42,.03);
   display: block;
+  margin: 0 auto;
 }
+
+/* =========================================================
+   NOME / VALORES
+   ========================================================= */
+.products-table td.name-cell{
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--pd-text);
+  line-height: 1.25;
+  padding-right: 6px;
+}
+
+.products-table td.name-cell:hover{
+  text-decoration: underline;
+}
+
+.products-table td:nth-child(3){
+  font-size: 13px;
+  color: #334155;
+  font-weight: 700;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.products-table td:nth-child(4){
+  font-weight: 800;
+  color: var(--pd-text);
+}
+
+.products-table td:nth-child(5),
+.products-table td:nth-child(6),
+.products-table td:nth-child(8){
+  color: #334155;
+  font-weight: 600;
+}
+
+/* =========================================================
+   PILLS
+   ========================================================= */
 .products-table .pill{
   display: inline-flex;
-  padding: 4px 10px;
+  align-items: center;
+  justify-content: center;
+  min-width: 42px;
+  padding: 5px 11px;
   border-radius: 999px;
   font-size: 12px;
-  border: 1px solid rgba(0,0,0,.10);
-  background: rgba(0,0,0,.03);
+  font-weight: 800;
+  border: 1px solid rgba(15,23,42,.10);
+  background: rgba(15,23,42,.03);
+  color: #334155;
 }
+
 .products-table .pill.low{
   border-color: rgba(255,165,0,.35);
   background: rgba(255,165,0,.12);
+  color: var(--pd-warn);
 }
-.products-table .pill.off{ opacity: .65; }
-.products-table th.actions,
-.products-table td.actions{ width: 190px; text-align: right; }
-.row-actions{ display:flex; gap:8px; justify-content:flex-end; }
-.icon-btn{
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(0,0,0,.10);
-  background: rgba(255,255,255,.65);
-  cursor: pointer;
-}
-.icon-btn:hover{ background: rgba(20,90,255,.08); }
-.empty{ padding: 18px; text-align:center; opacity:.70; }
 
-/* ===== Modais (tema claro) ===== */
-.modal::backdrop{ background: rgba(0,0,0,.45); }
-.modal{ border:none; padding:0; background:transparent; }
+.products-table .pill.off{
+  opacity: .65;
+}
+
+/* =========================================================
+   TOMADA DE DECISÃO (AÇÕES)
+   ========================================================= */
+.products-table th.actions,
+.products-table td.actions{
+  position: sticky;
+  right: 0;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  text-align: right;
+  padding-left: 12px;
+  padding-right: 18px;
+  z-index: 3;
+  box-shadow: none;
+}
+
+.products-table thead th.actions{
+  text-align: center;
+  padding-right: 0;
+  padding-left: 65px;
+  background: transparent;
+  z-index: 5;
+}
+
+.products-table tbody td.actions{
+  background: transparent;
+  overflow: visible;
+  border-bottom: none;
+}
+
+.products-table tbody tr:hover td.actions{
+  background: transparent;
+}
+
+.products-table tbody tr:hover td:not(.actions){
+  background: transparent;
+}
+
+.products-table td.actions::after{
+  display: none;
+}
+
+.products-table td.actions .row-actions{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.products-table td.actions .hint{
+  width: 150px;
+  min-height: 20px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 5px;
+  border-radius: 16px;
+  border: 1px solid rgba(15,23,42,.10);
+  background: rgba(15,23,42,.03);
+  box-sizing: border-box;
+  text-align: center;
+  margin-left: 60px;
+}
+
+.products-table td.actions .hint-top{
+  display: block;
+  font-size: 12px;
+  line-height: 1.1;
+  font-weight: 900;
+}
+
+.products-table td.actions .hint-bottom{
+  display: block;
+  font-size: 11px;
+  line-height: 1.1;
+  font-weight: 800;
+}
+
+.products-table td.actions .hint.ok{
+  background: rgba(20,90,255,.06);
+  border-color: rgba(20,90,255,.16);
+  color: #1d4ed8;
+}
+
+.products-table td.actions .hint.warn{
+  background: rgba(255,165,0,.12);
+  border-color: rgba(255,165,0,.28);
+  color: #9a6700;
+}
+
+.products-table td.actions .hint.danger{
+  background: rgba(255,80,80,.12);
+  border-color: rgba(255,80,80,.28);
+  color: #b42318;
+}
+
+/* =========================================================
+   MODAIS
+   ========================================================= */
+.modal::backdrop{
+  background: rgba(0,0,0,.45);
+}
+
+.modal{
+  border: none;
+  padding: 0;
+  background: transparent;
+}
 
 .modal-card{
   width: min(860px, 94vw);
@@ -164,7 +470,8 @@
   box-shadow: 0 18px 40px rgba(0,0,0,.18);
 }
 
-.modal-head, .modal-foot{
+.modal-head,
+.modal-foot{
   display: flex;
   align-items: center;
   gap: 10px;
@@ -175,12 +482,9 @@
 .modal-foot{
   border-bottom: none;
   border-top: 1px solid rgba(0,0,0,.08);
-
-  /* >>> força botões no canto inferior direito */
   justify-content: flex-end;
 }
 
-/* Rodapé grudado embaixo durante o scroll (somente no modal Novo Produto) */
 #dlgProduct .modal-foot{
   position: sticky;
   bottom: 0;
@@ -188,35 +492,33 @@
   z-index: 5;
 }
 
+.modal-foot .spacer{
+  flex: 1;
+}
 
-.modal-foot .spacer{ flex: 1; }
-
-.modal-body{ padding: 14px; }
+.modal-body{
+  padding: 14px;
+}
 
 .grid{
   display: grid;
   gap: 12px;
 }
+
 .grid label{
   display: grid;
-  gap: 8px;          /* status igual aos outros */
+  gap: 8px;
   font-size: 13px;
 }
-.grid label.full{ grid-column: 1 / -1; }
 
-/* Grid do modal de produto: 2 colunas fixas */
-#dlgProduct .modal-body.grid{
-  grid-template-columns: 1fr 1fr;
+.grid label.full{
+  grid-column: 1 / -1;
 }
 
-@media (max-width: 860px){
-  #dlgProduct .modal-body.grid{
-    grid-template-columns: 1fr;
-  }
+.err{
+  color: rgba(200,40,40,.90);
+  min-height: 16px;
 }
-
-
-.err{ color: rgba(200,40,40,.90); min-height:16px; }
 
 .icon{
   margin-left: auto;
@@ -227,17 +529,18 @@
   cursor: pointer;
 }
 
-/* Última linha: foto ao lado do status (coluna direita) */
+/* =========================================================
+   FOTO / STATUS NO MODAL PRODUTO
+   ========================================================= */
 .photo-field{
   display: grid;
-  justify-items: center;   /* <<< era end */
-  align-content: center;   /* <<< era start */
+  justify-items: center;
+  align-content: center;
   gap: 8px;
 }
 
-
 .photo-pick{
-  width: 86px;            /* tamanho “médio” (ajustável) */
+  width: 86px;
   height: 86px;
   border-radius: 18px;
   border: 1px solid rgba(0,0,0,.12);
@@ -281,131 +584,165 @@
   display: none;
   line-height: 22px;
 }
+
 .photo-x:hover{
   background: rgba(255,80,80,.12);
   border-color: rgba(255,80,80,.25);
 }
 
-
-/* Status centralizado embaixo com largura controlada */
 .status-field select{
   width: min(360px, 92%);
 }
 
-/* Responsivo */
-@media (max-width: 860px){
-  .products-toolbar{ grid-template-columns: 1fr; }
-  .products-header{ flex-direction: column; align-items: flex-start; }
-  .products-header .right{ width: 100%; justify-content: flex-start; flex-wrap: wrap; }
-  .grid-product{ grid-template-columns: 1fr; }
-  .mid-spacer{ display:none; }
-  .status-field select{ width: 100%; }
+/* =========================================================
+   MODAL PRODUTO
+   ========================================================= */
+#dlgProduct .modal-card{
+  width: min(920px, 94vw);
 }
 
-/* FORÇA o grid do modal de produto em 2 colunas */
 #dlgProduct .modal-body.grid{
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 16px 18px;
+  align-items: start;
 }
 
-/* Em telas pequenas, aí sim vira 1 coluna */
-@media (max-width: 860px){
-  #dlgProduct .modal-body.grid{
-    grid-template-columns: 1fr;
-  }
+#dlgProduct .modal-body.grid .full{
+  grid-column: 1 / -1;
 }
 
-/* Status e select padronizados */
 #dlgProduct .modal-body.grid label{
   display: grid;
-  gap: 8px;
+  gap: 10px;
   font-size: 13px;
 }
-#dlgProduct select.inp{
-  height: 36px;
-  padding: 0 12px;
+
+#dlgProduct .modal-body.grid .inp,
+#dlgProduct .modal-body.grid input,
+#dlgProduct .modal-body.grid select{
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* Foto na coluna direita, alinhada à direita */
+#dlgProduct .cat-row{
+  display: block;
+}
+
 #dlgProduct .photo-field{
+  width: 100%;
   display: grid;
-  justify-items: center;   /* <<< era end */
-  align-content: center;   /* <<< era start */
-  gap: 8px;
+  place-items: center;
+  align-content: start;
+  gap: 10px;
 }
 
-
-/* Miniatura tamanho “médio” */
 #dlgProduct .photo-pick{
   width: 86px;
   height: 86px;
+  border-radius: 18px;
+}
+
+#dlgProduct .modal-foot{
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+#prdCatAdd,
+#prdSub1Add,
+#prdSub2Add,
+#prdSub3Add,
+#prdSub4Add{
+  display: none !important;
+}
+
+#dlgProduct .status-photo-row{
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  gap: 16px;
+  align-items: end;
+  grid-column: 1 / -1;
+}
+
+#dlgProduct .status-photo-row .status-field{
+  width: 100%;
+}
+
+#dlgProduct .status-photo-row .photo-field{
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  width: 140px;
+}
+
+#dlgProduct .status-photo-row .photo-pick{
+  width: 96px;
+  height: 96px;
+  border-radius: 20px;
+}
+
+/* =========================================================
+   MODAL VIEW
+   ========================================================= */
+#dlgProductView .pv-inp[disabled],
+#dlgProductView .pv-inp.pv-ro{
+  background: rgba(0,0,0,.03);
+  border-color: rgba(0,0,0,.08);
+  color: rgba(0,0,0,.75);
+}
+
+#dlgProductView .pv-photoBox{
+  width: 92px;
+  height: 92px;
   border-radius: 18px;
   border: 1px solid rgba(0,0,0,.12);
   background: rgba(0,0,0,.03);
   display: grid;
   place-items: center;
   overflow: hidden;
-  cursor: pointer;
-  position: relative;
 }
 
-#dlgProduct .photo-img{
+#dlgProductView .pv-photoBox img{
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: none;
 }
 
-#dlgProduct .photo-empty{
+#dlgProductView .pv-photoBox .has{
+  display: block;
+}
+
+#dlgProductView #pv_photoEmpty{
   font-size: 12px;
   font-weight: 800;
+  letter-spacing: .4px;
   color: rgba(0,0,0,.45);
 }
 
-#dlgProduct .photo-x{
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 24px;
-  height: 24px;
-  border-radius: 10px;
-  border: 1px solid rgba(0,0,0,.12);
-  background: rgba(255,255,255,.85);
-  cursor: pointer;
-  display: none;
-}
-
-/* Centraliza a miniatura na coluna direita do modal produto */
-#dlgProduct .photo-field{
-  justify-items: center;  /* antes estava end */
-}
-
-/* Modal de movimentação sempre em 1 coluna */
+/* =========================================================
+   MOVIMENTAÇÃO
+   ========================================================= */
 #dlgMove .modal-body.grid{
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
 }
 
-/* ===== MOVIMENTAÇÃO (dlgMove) ===== */
 #dlgMove #mvBody{
   display: grid;
   gap: 12px;
 }
 
-/* topo (tipo) */
 #dlgMove .mv-top{
   display: grid;
 }
 
-/* seções */
 #dlgMove .mv-section{
   display: grid;
   gap: 12px;
 }
 
-/* card de itens */
 #dlgMove .mv-card{
   border: 1px solid rgba(0,0,0,.08);
   background: rgba(255,255,255,.70);
@@ -419,7 +756,9 @@
   align-items: end;
 }
 
-#dlgMove .mv-row .grow{ flex: 1; }
+#dlgMove .mv-row .grow{
+  flex: 1;
+}
 
 #dlgMove .mv-items{
   margin-top: 12px;
@@ -433,7 +772,7 @@
   display: grid;
   grid-template-columns: 1fr 90px 140px 44px;
   gap: 10px;
-  padding: 10px 10px;
+  padding: 10px;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: .2px;
@@ -443,7 +782,7 @@
 }
 
 #dlgMove .mv-items-list{
-  max-height: 190px; /* scroll interno */
+  max-height: 190px;
   overflow: auto;
 }
 
@@ -455,7 +794,10 @@
   border-bottom: 1px solid rgba(0,0,0,.06);
   align-items: center;
 }
-#dlgMove .mv-item:last-child{ border-bottom: none; }
+
+#dlgMove .mv-item:last-child{
+  border-bottom: none;
+}
 
 #dlgMove .mv-item .mini{
   opacity: .75;
@@ -472,15 +814,16 @@
   cursor: pointer;
 }
 
-/* grid de campos em 2 colunas */
 #dlgMove .mv-grid2{
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
-#dlgMove .mv-grid2 .full{ grid-column: 1 / -1; }
 
-/* total */
+#dlgMove .mv-grid2 .full{
+  grid-column: 1 / -1;
+}
+
 #dlgMove .mv-total{
   border: 1px solid rgba(0,0,0,.08);
   background: rgba(255,255,255,.70);
@@ -488,202 +831,62 @@
   padding: 10px 12px;
   display: grid;
   align-content: center;
+  justify-self: end;
+  width: 180px;
+  text-align: center;
 }
+
 #dlgMove .mv-total-label{
   font-size: 12px;
   opacity: .7;
   text-transform: uppercase;
   letter-spacing: .2px;
+  text-align: center;
 }
+
 #dlgMove .mv-total-value{
   font-size: 18px;
   font-weight: 750;
   margin-top: 4px;
-}
-
-/* responsivo */
-@media (max-width: 860px){
-  #dlgMove .mv-row{ flex-direction: column; align-items: stretch; }
-  #dlgMove .mv-grid2{ grid-template-columns: 1fr; }
-  #dlgMove .mv-items-head,
-  #dlgMove .mv-item{
-    grid-template-columns: 1fr 70px 120px 44px;
-  }
-}
-
-/* Movimentação: selects de produto e campos longos */
-#dlgMove .mv-row select.inp,
-#dlgMove .mv-grid2 select.inp{
-  width: 100%;
-  min-width: 320px; /* aumenta a sensação de largura */
-}
-
-#dlgMove .mv-grid2 input.inp{
-  width: 100%;
-}
-
-/* Observação mais comprida (full já faz, mas reforça) */
-#dlgMove .mv-grid2 .full input.inp{
-  width: 100%;
-}
-
-/* Total mais compacto e centralizado */
-#dlgMove .mv-total{
-  justify-self: end;          /* encosta na direita */
-  width: 180px;               /* menor */
-  text-align: center;         /* centraliza texto */
-}
-
-#dlgMove .mv-total-label{
   text-align: center;
 }
 
-#dlgMove .mv-total-value{
-  text-align: center;
-}
-
-/* RESPEITAR hidden no dlgMove (senão aparece tudo) */
-#dlgMove .mv-section[hidden]{
-  display: none !important;
-}
-
+#dlgMove .mv-section[hidden],
 #dlgMove #mv_hint[hidden]{
   display: none !important;
 }
 
-/* Compra: deixar a busca de produto bem mais comprida */
 #dlgMove #mv_purchase .mv-row{
-  align-items: center; /* melhora o alinhamento do input e do botão */
+  align-items: flex-end;
 }
 
 #dlgMove #mv_purchase .mv-row .grow{
-  flex: 1 1 auto;      /* deixa o label crescer */
+  flex: 1 1 auto;
 }
 
 #dlgMove #mv_purchase #mv_p_query{
-  width: 100%;         /* input ocupa tudo dentro do grow */
-  min-width: 520px;    /* força ficar “comprido” */
-}
-
-/* Compra: alinhar botão "Adicionar" com o input (mesma linha) */
-#dlgMove #mv_purchase .mv-row{
-  align-items: flex-end; /* alinha na base do input */
+  width: 100%;
+  min-width: 520px;
 }
 
 #dlgMove #mv_purchase .mv-row .btn{
-  height: 36px;          /* garante mesma altura do input */
+  height: 36px;
 }
 
-/* Clique em Nome/Foto */
-.products-table td.name-cell,
-.products-table td.thumb-cell{
-  cursor: pointer;
-}
-.products-table td.name-cell:hover{
-  text-decoration: underline;
-}
-
-/* Modal Product View: inputs read-only com cara de cinza */
-#dlgProductView .pv-inp[disabled],
-#dlgProductView .pv-inp.pv-ro{
-  background: rgba(0,0,0,.03);
-  border-color: rgba(0,0,0,.08);
-  color: rgba(0,0,0,.75);
-}
-
-/* Foto no modal view */
-#dlgProductView .pv-photoBox{
-  width: 92px;
-  height: 92px;
-  border-radius: 18px;
-  border: 1px solid rgba(0,0,0,.12);
-  background: rgba(0,0,0,.03);
-  display: grid;
-  place-items: center;
-  overflow: hidden;
-}
-#dlgProductView .pv-photoBox img{
+#dlgMove .mv-row select.inp,
+#dlgMove .mv-grid2 select.inp{
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: none;
-}
-#dlgProductView .pv-photoBox .has{
-  display: block;
-}
-#dlgProductView #pv_photoEmpty{
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: .4px;
-  color: rgba(0,0,0,.45);
+  min-width: 320px;
 }
 
-/* Coluna Ações: texto + botão */
-.products-table td.actions .row-actions{
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-}
-.products-table td.actions .hint{
-  font-size: 12px;
-  opacity: .75;
-  text-align: right;
-  line-height: 1.2;
+#dlgMove .mv-grid2 input.inp,
+#dlgMove .mv-grid2 .full input.inp{
+  width: 100%;
 }
 
-/* Centralizar o cabeçalho e conteúdo de AÇÕES */
-.products-table th.actions,
-.products-table td.actions{
-  text-align: center;
-}
-
-.products-table td.actions .row-actions{
-  align-items: center;
-}
-
-.products-table td.actions .hint{
-  text-align: center;
-  font-weight: 650;
-  opacity: 1;
-}
-
-/* Aviso de ações com cara de alerta/ok */
-.products-table td.actions .hint{
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(0,0,0,.10);
-  background: rgba(0,0,0,.03);
-  display: inline-block;
-  font-size: 12px;
-}
-
-.products-table td.actions .hint.ok{
-  background: rgba(20,90,255,.06);
-  border-color: rgba(20,90,255,.18);
-}
-
-.products-table td.actions .hint.warn{
-  background: rgba(255,165,0,.12);
-  border-color: rgba(255,165,0,.28);
-}
-
-.products-table td.actions .hint.danger{
-  background: rgba(255,80,80,.12);
-  border-color: rgba(255,80,80,.28);
-}
-
-.products-table thead th[data-sort].is-sort::after{
-  content: attr(data-dir);
-  margin-left: 8px;
-  font-size: 12px;
-  opacity: .7;
-}
-
-.products-table thead th[data-sort][data-dir="asc"]::after{ content: "↑"; }
-.products-table thead th[data-sort][data-dir="desc"]::after{ content: "↓"; }
-
-
-/* Autocomplete bonito (igual venda) */
+/* =========================================================
+   AUTOCOMPLETE
+   ========================================================= */
 #dlgMove .ac{
   position: relative;
   width: 100%;
@@ -764,100 +967,109 @@
   white-space: nowrap;
 }
 
+/* =========================================================
+   CATEGORIAS / TAXAS
+   ========================================================= */
 .cat-row{
-  display:flex;
-  gap:8px;
-  align-items:center; /* ✅ isso resolve o desalinhamento vertical */
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .cat-row input{
-  flex:1;
+  flex: 1;
 }
 
 .cat-row .btn{
-  min-width:42px;
-  height:40px;              /* ✅ garante mesma altura do input */
-  display:flex;              /* ✅ centraliza o "+" */
-  align-items:center;
-  justify-content:center;
-  padding:0 12px;
+  min-width: 42px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
 }
 
-/* manager flutuante/embutido */
-.cat-manager.hidden{ display:none; }
+.cat-manager.hidden{
+  display: none;
+}
 
 .cat-manager{
-  position:fixed;
-  inset:0;
-  background:rgba(15,23,42,.35);
-  display:grid;
-  place-items:center;
-  z-index:9999;
+  position: fixed;
+  inset: 0;
+  background: rgba(15,23,42,.35);
+  display: grid;
+  place-items: center;
+  z-index: 9999;
 }
 
 .cat-box{
-  width:min(520px, 92vw);
-  background:#fff;
-  border-radius:18px;
-  border:1px solid rgba(15,23,42,.10);
-  box-shadow:0 24px 60px rgba(15,23,42,.22);
-  padding:14px;
+  width: min(520px, 92vw);
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid rgba(15,23,42,.10);
+  box-shadow: 0 24px 60px rgba(15,23,42,.22);
+  padding: 14px;
 }
 
 .cat-head{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  margin-bottom:10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .cat-title{
-  font-weight:950;
-  color:#0f172a;
+  font-weight: 950;
+  color: #0f172a;
 }
 
 .cat-add{
-  display:flex;
-  gap:10px;
-  align-items:center;
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .cat-add input{
-  flex:1;
-  height:40px;
+  flex: 1;
+  height: 40px;
 }
 
 .cat-list{
-  margin-top:12px;
-  display:grid;
-  gap:8px;
-  max-height:240px;
-  overflow:auto;
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+  max-height: 240px;
+  overflow: auto;
 }
 
 .cat-row-item{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:10px;
-  border:1px solid rgba(15,23,42,.10);
-  border-radius:14px;
-  padding:10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(15,23,42,.10);
+  border-radius: 14px;
+  padding: 10px 12px;
 }
 
 .cat-foot{
-  margin-top:10px;
-  font-size:12px;
-  font-weight:800;
-  color:#64748b;
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #64748b;
 }
 
+.tax-card{
+  max-width: 520px;
+}
 
-.tax-card { max-width: 520px; }
-.tax-body { display: grid; gap: 12px; }
+.tax-body{
+  display: grid;
+  gap: 12px;
+}
 
-.tax-list {
+.tax-list{
   display: grid;
   gap: 8px;
   max-height: 260px;
@@ -868,11 +1080,11 @@
   background: rgba(0,0,0,.02);
 }
 
-.tax-item {
+.tax-item{
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   padding: 10px 12px;
   border-radius: 12px;
   cursor: pointer;
@@ -880,179 +1092,30 @@
   border: 1px solid rgba(0,0,0,.06);
 }
 
-.tax-item:hover { background: rgba(0,0,0,.03); }
+.tax-item:hover{
+  background: rgba(0,0,0,.03);
+}
 
-.tax-item .t {
+.tax-item .t{
   font-weight: 600;
 }
 
-.tax-item .x {
+.tax-item .x{
   opacity: .55;
   font-size: 12px;
-}
-
-.tax-new {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  align-items: center;
-}
-
-/* ===== Modal Novo Produto: layout FINAL (na ordem pedida) ===== */
-#dlgProduct .modal-body.grid{
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px 16px;
-  align-items: start;
-}
-
-/* qualquer coisa com .full ocupa a linha inteira */
-#dlgProduct .modal-body.grid .full{
-  grid-column: 1 / -1;
-}
-
-/* Categoria/Subs sem botão +: campo ocupa 100% */
-#dlgProduct .cat-row{
-  display: block;         /* remove a coluna fantasma */
-}
-
-#dlgProduct .cat-row .inp,
-#dlgProduct .cat-row input,
-#dlgProduct .cat-row select{
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Foto centralizada na coluna direita */
-#dlgProduct .photo-field{
-  grid-column: auto;
-  display: grid;
-  justify-items: center;     /* CENTRALIZA */
-  align-content: center;     /* CENTRALIZA */
-  gap: 8px;
-}
-
-
-/* tamanho da foto */
-#dlgProduct .photo-pick{
-  width: 86px;
-  height: 86px;
-  border-radius: 18px;
-}
-
-/* Esconde todos os botões "+" (categoria e subs) */
-#prdCatAdd,
-#prdSub1Add,
-#prdSub2Add,
-#prdSub3Add,
-#prdSub4Add{
-  display: none !important;
-}
-
-
-/* Garante que TODOS os campos do modal "Novo produto" ocupem 100% da coluna */
-#dlgProduct .modal-body.grid label > .inp,
-#dlgProduct .modal-body.grid label > input,
-#dlgProduct .modal-body.grid label > select{
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* ===== Linha final: Status + Foto (sem buraco) ===== */
-#dlgProduct .status-photo-row{
-  display: grid;
-  grid-template-columns: 1fr 140px; /* coluna da foto fixa */
-  gap: 16px;
-  align-items: end;
-  grid-column: 1 / -1;            /* ocupa as 2 colunas da grade principal */
-}
-
-/* status ocupa a coluna grande */
-#dlgProduct .status-photo-row .status-field{
-  width: 100%;
-}
-
-/* foto sempre centralizada dentro da coluna fixa */
-#dlgProduct .status-photo-row .photo-field{
-  display: grid;
-  justify-items: center;
-  align-content: center;
-  width: 140px;                   /* casa com a coluna */
-}
-
-/* foto um pouco maior pra ficar “proporcional” */
-#dlgProduct .status-photo-row .photo-pick{
-  width: 96px;
-  height: 96px;
-  border-radius: 20px;
-}
-
-/* ===== AJUSTES FINAIS: MODAL NOVO PRODUTO ===== */
-
-/* dá mais “respiro” e deixa o modal mais largo */
-#dlgProduct .modal-card{
-  width: min(920px, 94vw);
-}
-
-/* grid consistente e mais bonito */
-#dlgProduct .modal-body.grid{
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px 18px;
-  align-items: start;
-}
-
-@media (max-width: 860px){
-  #dlgProduct .modal-body.grid{
-    grid-template-columns: 1fr;
-  }
-}
-
-/* labels com o MESMO espaçamento (resolve “colado” da categoria/subs) */
-#dlgProduct .modal-body.grid label{
-  display: grid;
-  gap: 10px;
-  font-size: 13px;
-}
-
-/* full ocupa a linha inteira */
-#dlgProduct .modal-body.grid .full{
-  grid-column: 1 / -1;
-}
-
-/* garante que inputs/selects ocupem 100% SEM exceção */
-#dlgProduct .modal-body.grid .inp{
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* FOTO: centralizada de verdade na célula */
-#dlgProduct .photo-field{
-  width: 100%;
-  display: grid;
-  place-items: center;
-  align-content: start;
-  gap: 10px;
-}
-
-/* rodapé sempre no canto inferior direito */
-#dlgProduct .modal-foot{
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-/* ===== Tax picker: botão de excluir ===== */
-.tax-item{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
 }
 
 .tax-item .right{
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.tax-new{
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
 }
 
 .tax-del{
@@ -1071,8 +1134,442 @@
   border-color: rgba(255,80,80,.35);
 }
 
+/* =========================================================
+   CLIQUE EM FOTO / NOME
+   ========================================================= */
+.products-table td.name-cell,
+.products-table td.thumb-cell{
+  cursor: pointer;
+}
+
+.products-table td.name-cell:hover{
+  text-decoration: underline;
+}
+
+/* =========================================================
+   RESPONSIVO
+   ========================================================= */
 @media (max-width: 860px){
+  .products-toolbar{
+    grid-template-columns: 1fr;
+  }
+
+  .products-header{
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .products-header .right{
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .grid-product{
+    grid-template-columns: 1fr;
+  }
+
+  .mid-spacer{
+    display: none;
+  }
+
+  .status-field select{
+    width: 100%;
+  }
+
+  .products-table{
+    table-layout: auto;
+  }
+
+  .products-table th,
+  .products-table td{
+    font-size: 12px;
+    padding: 10px 8px;
+  }
+
+  .products-table th.actions,
+  .products-table td.actions{
+    text-align: center;
+    padding-right: 8px;
+  }
+
+  .products-table thead th.actions{
+    text-align: center;
+    padding-right: 8px;
+    padding-left: 0;
+  }
+
+  .products-table td.actions .row-actions{
+    justify-content: center;
+  }
+
+  .products-table td.actions .hint{
+    width: 150px;
+    margin-left: 0;
+  }
+
+  #dlgProduct .modal-body.grid{
+    grid-template-columns: 1fr;
+  }
+
+  #dlgMove .mv-row{
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #dlgMove .mv-grid2{
+    grid-template-columns: 1fr;
+  }
+
+  #dlgMove .mv-items-head,
+  #dlgMove .mv-item{
+    grid-template-columns: 1fr 70px 120px 44px;
+  }
+
   #dlgProductView .modal-body.grid{
     grid-template-columns: 1fr;
+  }
+}
+
+/* ===== hover azul suave na linha inteira ===== */
+.products-table tbody tr:hover td{
+  background: rgba(20,90,255,.06);
+}
+
+/* garante que a coluna sticky também fique igual */
+.products-table tbody tr:hover td.actions{
+  background: rgba(20,90,255,.06);
+}
+
+/* ===== hover linha inteira (corrigido) ===== */
+.products-table tbody tr:hover td{
+  background: rgba(20,90,255,.06) !important;
+}
+
+/* remove qualquer transparência que esteja atrapalhando */
+.products-table tbody td{
+  background: transparent;
+}
+
+/* força a coluna sticky a seguir igual */
+.products-table tbody td.actions{
+  background: transparent;
+}
+
+.products-table tbody tr:hover td.actions{
+  background: rgba(20,90,255,.06) !important;
+}
+
+.products-table tbody tr{
+  position: relative;
+}
+
+.products-table tbody tr::after{
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 100%; /* aqui você controla */
+  bottom: 0;
+  height: 1px;
+  background: rgba(15,23,42,.06);
+}
+
+/* última linha sem HR */
+.products-table tbody tr:last-child::after{
+  display: none;
+}
+
+.products-table tbody td{
+  transition: background .18s ease;
+}
+
+/* =========================
+   AJUSTE PARA NOTEBOOK
+========================= */
+@media (max-width: 1440px){
+  .products-page{
+    gap: 14px;
+  }
+
+  .products-header{
+    gap: 12px;
+  }
+
+  .products-title{
+    font-size: 28px;
+  }
+
+  .products-subtitle{
+    font-size: 12px;
+  }
+
+  .products-header .right{
+    gap: 10px;
+  }
+
+  .products-header .right .btn,
+  .products-header .right .btn-outline,
+  .products-header .right .btn-primary{
+    height: 40px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  .products-toolbar{
+    gap: 8px;
+  }
+
+  .products-toolbar input,
+  .products-toolbar select{
+    height: 40px;
+    font-size: 13px;
+  }
+
+  .products-table th,
+  .products-table td{
+    font-size: 12px;
+    padding: 10px 8px;
+  }
+
+  .products-table th{
+    white-space: nowrap;
+  }
+
+  .thumb{
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+  }
+
+  .products-table td strong,
+  .products-table td b{
+    font-size: 12px;
+  }
+
+  .products-table td small,
+  .products-table td .muted{
+    font-size: 11px;
+  }
+
+  .chip,
+  .badge,
+  .status-badge{
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  .products-table td.actions .hint{
+    width: 132px;
+    padding: 7px 6px;
+    border-radius: 14px;
+    margin-left: 0;
+  }
+
+  .products-table td.actions .hint-top{
+    font-size: 11px;
+    line-height: 1.1;
+  }
+
+  .products-table td.actions .hint-bottom{
+    font-size: 10px;
+    line-height: 1.1;
+  }
+}
+
+@media (max-width: 1366px){
+  .products-table th,
+  .products-table td{
+    font-size: 11.5px;
+    padding: 9px 6px;
+  }
+
+  .thumb{
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+  }
+
+  .products-table td.actions .hint{
+    width: 120px;
+    padding: 6px 5px;
+  }
+
+  .products-table td.actions .hint-top{
+    font-size: 10px;
+  }
+
+  .products-table td.actions .hint-bottom{
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 1440px){
+  .products-table th,
+  .products-table td{
+    font-size: 12px;
+    padding: 14px 8px; /* aumenta a altura da linha */
+    vertical-align: middle;
+  }
+
+  .products-table tbody tr{
+    height: auto;
+  }
+
+  .products-table td{
+    white-space: normal;
+  }
+
+  /* nome do produto pode quebrar */
+  .products-table td:nth-child(2){
+    line-height: 1.25;
+  }
+
+  /* tomada de decisão pode quebrar e respirar */
+  .products-table th.actions,
+  .products-table td.actions{
+    white-space: normal;
+    vertical-align: middle;
+  }
+
+  .products-table td.actions .hint{
+    width: 132px;
+    min-height: 54px;
+    padding: 8px 8px;
+    margin-left: 0;
+    line-height: 1.15;
+    white-space: normal;
+  }
+
+  .products-table td.actions .hint-top{
+    font-size: 11px;
+    line-height: 1.15;
+  }
+
+  .products-table td.actions .hint-bottom{
+    font-size: 10px;
+    line-height: 1.15;
+  }
+
+  .thumb{
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+  }
+}
+
+@media (max-width: 1440px){
+  .products-table th,
+  .products-table td{
+    font-size: 12px;
+    padding: 16px 8px; /* aumenta a altura da linha */
+    vertical-align: middle;
+  }
+
+  .products-table tbody tr{
+    height: auto;
+  }
+
+  .products-table td{
+    white-space: normal;
+  }
+
+  /* nome do produto pode quebrar */
+  .products-table td:nth-child(2){
+    line-height: 1.25;
+  }
+
+  /* tomada de decisão pode quebrar e respirar */
+  .products-table th.actions,
+  .products-table td.actions{
+    white-space: normal;
+    vertical-align: middle;
+  }
+
+  .products-table td.actions .hint{
+    width: 132px;
+    min-height: 60px;
+    padding: 8px 8px;
+    margin-left: 0;
+    line-height: 1.15;
+    white-space: normal;
+  }
+
+  .products-table td.actions .hint-top{
+    font-size: 11px;
+    line-height: 1.15;
+  }
+
+  .products-table td.actions .hint-bottom{
+    font-size: 10px;
+    line-height: 1.15;
+  }
+
+  .thumb{
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+  }
+}
+
+@media (max-width: 1440px){
+  .products-table th.actions,
+  .products-table td.actions{
+    padding-left: 14px;
+    padding-right: 10px;
+    text-align: center;
+  }
+
+  .products-table thead th.actions{
+    padding-left: 18px;
+    padding-right: 8px;
+  }
+
+  .products-table td.actions .row-actions{
+    justify-content: flex-start;
+    padding-left: 10px;
+  }
+
+  .products-table td.actions .hint{
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 1440px){
+  .products-table th.actions[data-sort]::after,
+  .products-table thead th.actions[data-sort].is-sort::after{
+    margin-left: 3px;
+    position: relative;
+    left: -1px;
+  }
+}
+
+/* ===== refinamento notebook: tomada de decisão ===== */
+@media (max-width: 1440px){
+  .products-table th.actions,
+  .products-table td.actions{
+    padding-left: 14px;
+    padding-right: 10px;
+    text-align: center;
+  }
+
+  .products-table thead th.actions{
+    padding-left: 18px;
+    padding-right: 8px;
+  }
+
+  .products-table td.actions .row-actions{
+    justify-content: flex-start;
+    padding-left: 10px;
+  }
+
+  .products-table td.actions .hint{
+    margin-left: 0;
+  }
+
+  .products-table th.actions[data-sort]::after,
+  .products-table thead th.actions[data-sort].is-sort::after{
+    margin-left: 3px;
+    position: relative;
+    left: -1px;
   }
 }

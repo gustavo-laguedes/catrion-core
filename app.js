@@ -2,26 +2,44 @@
 const app = document.getElementById("app");
 const router = window.CoreRouter.createRouter({ mountEl: app });
 
-if (!window.CoreAuth || !window.CoreAuth.getSession() ) {
-  router.render("login");
-} else {
-  const session = window.CoreAuth.getSession();
-  router.render(session ? "home" : "login");
-}
+(async () => {
+  try {
+    if (window.CoreAuth?.bootstrap) {
+      await window.CoreAuth.bootstrap();
+    }
+  } catch (e) {
+    console.warn("CoreAuth.bootstrap falhou:", e);
+  }
+
+  setActiveSidebar("home");
+  router.render("home");
+})();
 
 document.addEventListener("click", (e) => {
   const el = e.target.closest("[data-go-home]");
   if (!el) return;
 
-  // se não estiver logado, manda pro login
-  if (!window.CoreAuth || !window.CoreAuth.getSession()) {
-    router.render("login");
-    return;
-  }
-
+  setActiveSidebar("home");
   router.go("home");
 });
 
+
+function setActiveSidebar(routeName) {
+  document.querySelectorAll(".sidebar-link").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.route === routeName);
+  });
+}
+
+document.addEventListener("click", (e) => {
+  const navBtn = e.target.closest(".sidebar-link[data-route]");
+  if (!navBtn) return;
+
+  const route = navBtn.dataset.route;
+  if (!route) return;
+
+  router.go(route);
+  setActiveSidebar(route);
+});
 
 // acessibilidade: Enter/Espaço no “logo”
 document.addEventListener("keydown", (e) => {
@@ -30,12 +48,6 @@ document.addEventListener("keydown", (e) => {
 
   if (e.key === "Enter" || e.key === " ") {
     e.preventDefault();
-
-    if (!window.CoreAuth || !window.CoreAuth.getSession()) {
-      router.render("login");
-      return;
-    }
-
     router.go("home");
   }
 });
@@ -47,18 +59,8 @@ const adminAuthError = document.getElementById("adminAuthError");
 
 const systemConfigOverlay = document.getElementById("systemConfigOverlay");
 
-// sections
-const configUsers = document.getElementById("usersSection");
-const configMachines = document.getElementById("machinesSection");
 
-// users
-const userForm = document.getElementById("userForm");
-const btnNewUser = document.getElementById("btnNewUser");
-const saveUserBtn = document.getElementById("saveUser");
-const userNameInput = document.getElementById("userName");
-const userRoleInput = document.getElementById("userRole");
-const userPasswordInput = document.getElementById("userPass");
-const usersList = document.getElementById("userList");
+const configMachines = document.getElementById("machinesSection");
 
 // machines
 const machineForm = document.getElementById("machineForm");
@@ -68,51 +70,547 @@ const machineNameInput = document.getElementById("machineName");
 const machinesList = document.getElementById("machineList");
 
 
+/* =========================
+   CUSTOMERS STORE (Supabase)
+========================= */
+
+window.CustomersStore = (function () {
+  function requireSb() {
+  const candidates = [
+    window.sb,
+    window.CoreSupabase?.client,
+    window.supabase
+  ];
+
+  const sb = candidates.find(c => c && typeof c.from === "function") || null;
+
+  if (!sb) {
+    throw new Error("Cliente Supabase não encontrado ou inválido em window.");
+  }
+
+  return sb;
+}
+
+  function getTenantId() {
+    const auth = window.CoreAuth;
+    if (auth?.getCurrentTenantId) return auth.getCurrentTenantId();
+    if (auth?.getTenantId) return auth.getTenantId();
+
+    const u = auth?.getCurrentUser?.() || null;
+    return u?.tenant_id || u?.tenantId || null;
+  }
+
+  function mapRow(row) {
+    if (!row) return null;
+    return {
+      id: row.id,
+      tenantId: row.tenant_id,
+      name: row.name || "",
+      phone: row.phone || "",
+      doc: row.doc || "",
+      notes: row.notes || "",
+      createdAt: row.created_at || null,
+      updatedAt: row.updated_at || null
+    };
+  }
+
+  async function list({ limit = 1000, orderBy = "name", ascending = true } = {}) {
+    const sb = requireSb();
+    const tenantId = getTenantId();
+    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+
+    let query = sb
+      .from("customers")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .order(orderBy, { ascending });
+
+    if (limit) query = query.limit(limit);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    return (data || []).map(mapRow);
+  }
+
+  async function create(payload = {}) {
+    const sb = requireSb();
+    const tenantId = getTenantId();
+    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+
+    const row = {
+      tenant_id: tenantId,
+      name: String(payload.name || "").trim(),
+      phone: String(payload.phone || "").trim() || null,
+      doc: String(payload.doc || "").trim() || null,
+      notes: String(payload.notes || "").trim() || null
+    };
+
+    const { data, error } = await sb
+      .from("customers")
+      .insert(row)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return mapRow(data);
+  }
+
+  async function update(id, payload = {}) {
+    const sb = requireSb();
+    const tenantId = getTenantId();
+    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+    if (!id) throw new Error("ID do cliente é obrigatório.");
+
+    const row = {
+      name: String(payload.name || "").trim(),
+      phone: String(payload.phone || "").trim() || null,
+      doc: String(payload.doc || "").trim() || null,
+      notes: String(payload.notes || "").trim() || null,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await sb
+      .from("customers")
+      .update(row)
+      .eq("id", id)
+      .eq("tenant_id", tenantId)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return mapRow(data);
+  }
+
+  async function remove(id) {
+    const sb = requireSb();
+    const tenantId = getTenantId();
+    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+    if (!id) throw new Error("ID do cliente é obrigatório.");
+
+    const { error } = await sb
+      .from("customers")
+      .delete()
+      .eq("id", id)
+      .eq("tenant_id", tenantId);
+
+    if (error) throw error;
+    return true;
+  }
+
+  return {
+    list,
+    create,
+    update,
+    remove
+  };
+})();
+
+
+/* =========================
+   MACHINES STORE (Supabase)
+========================= */
+
+window.MachinesStore = (function () {
+  function requireSb() {
+    const candidates = [
+      window.sb,
+      window.CoreSupabase?.client,
+      window.supabase
+    ];
+
+    const sb = candidates.find(c => c && typeof c.from === "function") || null;
+
+    if (!sb) {
+      throw new Error("Cliente Supabase não encontrado ou inválido em window.");
+    }
+
+    return sb;
+  }
+
+  function getTenantId() {
+    const auth = window.CoreAuth;
+    if (auth?.getCurrentTenantId) return auth.getCurrentTenantId();
+    if (auth?.getTenantId) return auth.getTenantId();
+
+    const u = auth?.getCurrentUser?.() || null;
+    return u?.tenant_id || u?.tenantId || null;
+  }
+
+  function normalizeRates(rates) {
+  const src = rates && typeof rates === "object" ? rates : {};
+  const out = {};
+
+  Object.keys(src).forEach(key => {
+    const raw = src[key];
+
+    if (raw && typeof raw === "object") {
+      out[String(key)] = {
+        enabled: raw.enabled !== false,
+        rate: Number(raw.rate || 0)
+      };
+      return;
+    }
+
+    out[String(key)] = {
+      enabled: true,
+      rate: Number(raw || 0)
+    };
+  });
+
+  return out;
+}
+
+  function mapRow(row) {
+    if (!row) return null;
+
+    return {
+      id: row.id,
+      tenantId: row.tenant_id,
+      name: row.name || "",
+      rates: normalizeRates(row.rates || {}),
+      createdAt: row.created_at || null,
+      updatedAt: row.updated_at || null,
+      raw: row
+    };
+  }
+
+  async function list({ limit = 1000, orderBy = "name", ascending = true } = {}) {
+    const sb = requireSb();
+    const tenantId = getTenantId();
+    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+
+    let query = sb
+      .from("machines")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .order(orderBy, { ascending });
+
+    if (limit) query = query.limit(limit);
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    return (data || []).map(mapRow);
+  }
+
+  async function create(payload = {}) {
+    const sb = requireSb();
+    const tenantId = getTenantId();
+    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+
+    const row = {
+      tenant_id: tenantId,
+      name: String(payload.name || "").trim(),
+      rates: normalizeRates(payload.rates || {})
+    };
+
+    const { data, error } = await sb
+      .from("machines")
+      .insert(row)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return mapRow(data);
+  }
+
+  async function update(id, payload = {}) {
+    const sb = requireSb();
+    const tenantId = getTenantId();
+    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+    if (!id) throw new Error("ID da maquininha é obrigatório.");
+
+    const row = {
+      name: String(payload.name || "").trim(),
+      rates: normalizeRates(payload.rates || {}),
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await sb
+      .from("machines")
+      .update(row)
+      .eq("id", id)
+      .eq("tenant_id", tenantId)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return mapRow(data);
+  }
+
+  async function remove(id) {
+    const sb = requireSb();
+    const tenantId = getTenantId();
+    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+    if (!id) throw new Error("ID da maquininha é obrigatório.");
+
+    const { error } = await sb
+      .from("machines")
+      .delete()
+      .eq("id", id)
+      .eq("tenant_id", tenantId);
+
+    if (error) throw error;
+    return true;
+  }
+
+  return {
+    list,
+    create,
+    update,
+    remove
+  };
+})();
+
+
+/* =========================
+   AP CATEGORIES STORE (Supabase)
+========================= */
+
+window.APCategoriesStore = (function () {
+  function requireSb() {
+    const candidates = [
+      window.sb,
+      window.CoreSupabase?.client,
+      window.supabase
+    ];
+    const sb = candidates.find(c => c && typeof c.from === "function") || null;
+    if (!sb) throw new Error("Cliente Supabase não encontrado ou inválido em window.");
+    return sb;
+  }
+
+  function getTenantId() {
+    const auth = window.CoreAuth;
+    if (auth?.getCurrentTenantId) return auth.getCurrentTenantId();
+    if (auth?.getTenantId) return auth.getTenantId();
+    const u = auth?.getCurrentUser?.() || null;
+    return u?.tenant_id || u?.tenantId || null;
+  }
+
+  function mapRow(row) {
+    return {
+      id: row.id,
+      tenantId: row.tenant_id,
+      name: String(row.name || "").trim(),
+      createdAt: row.created_at || null
+    };
+  }
+
+  async function list({ limit = 1000, orderBy = "name", ascending = true } = {}) {
+    const sb = requireSb();
+    const tenantId = getTenantId();
+    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+
+    let query = sb
+      .from("ap_categories")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .order(orderBy, { ascending });
+
+    if (limit) query = query.limit(limit);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).map(mapRow);
+  }
+
+  async function create(payload = {}) {
+    const sb = requireSb();
+    const tenantId = getTenantId();
+    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+
+    const row = {
+      tenant_id: tenantId,
+      name: String(payload.name || "").trim()
+    };
+
+    const { data, error } = await sb
+      .from("ap_categories")
+      .insert(row)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return mapRow(data);
+  }
+
+  async function remove(id) {
+    const sb = requireSb();
+    const tenantId = getTenantId();
+    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+    if (!id) throw new Error("ID da categoria é obrigatório.");
+
+    const { error } = await sb
+      .from("ap_categories")
+      .delete()
+      .eq("id", id)
+      .eq("tenant_id", tenantId);
+
+    if (error) throw error;
+    return true;
+  }
+
+  return { list, create, remove };
+})();
+
+
+/* =========================
+   AP PAYABLES STORE (Supabase)
+========================= */
+
+window.APPayablesStore = (function () {
+  function requireSb() {
+    const candidates = [
+      window.sb,
+      window.CoreSupabase?.client,
+      window.supabase
+    ];
+    const sb = candidates.find(c => c && typeof c.from === "function") || null;
+    if (!sb) throw new Error("Cliente Supabase não encontrado ou inválido em window.");
+    return sb;
+  }
+
+  function getTenantId() {
+    const auth = window.CoreAuth;
+    if (auth?.getCurrentTenantId) return auth.getCurrentTenantId();
+    if (auth?.getTenantId) return auth.getTenantId();
+    const u = auth?.getCurrentUser?.() || null;
+    return u?.tenant_id || u?.tenantId || null;
+  }
+
+  function mapRow(row) {
+    return {
+      id: row.id,
+      tenantId: row.tenant_id,
+      title: row.title || "",
+      categoryId: row.category_id || null,
+      category: row.category_name || "",
+      supplier: row.supplier || "",
+      amount: Number(row.amount || 0),
+      dueDate: row.due_date || "",
+      status: row.status || "pending",
+      paidAt: row.paid_at || null,
+      paidMethod: row.paid_method || "",
+      notes: row.notes || "",
+      groupId: row.group_id || "",
+      installment: row.installment != null ? Number(row.installment) : null,
+      installments: row.installments != null ? Number(row.installments) : null,
+      createdAt: row.created_at || null,
+      updatedAt: row.updated_at || null
+    };
+  }
+
+  async function list({ limit = 5000, orderBy = "due_date", ascending = true } = {}) {
+    const sb = requireSb();
+    const tenantId = getTenantId();
+    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+
+    let query = sb
+      .from("ap_payables")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .order(orderBy, { ascending });
+
+    if (limit) query = query.limit(limit);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return (data || []).map(mapRow);
+  }
+
+  async function create(payload = {}) {
+    const sb = requireSb();
+    const tenantId = getTenantId();
+    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+
+    const row = {
+      tenant_id: tenantId,
+      title: String(payload.title || "").trim(),
+      category_id: payload.categoryId || null,
+      category_name: String(payload.category || "").trim() || null,
+      supplier: String(payload.supplier || "").trim() || null,
+      amount: Number(payload.amount || 0),
+      due_date: payload.dueDate || null,
+      status: String(payload.status || "pending"),
+      paid_at: payload.paidAt || null,
+      paid_method: String(payload.paidMethod || "").trim() || null,
+      notes: String(payload.notes || "").trim() || null,
+      group_id: String(payload.groupId || "").trim() || null,
+      installment: payload.installment != null ? Number(payload.installment) : null,
+      installments: payload.installments != null ? Number(payload.installments) : null
+    };
+
+    const { data, error } = await sb
+      .from("ap_payables")
+      .insert(row)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return mapRow(data);
+  }
+
+  async function update(id, payload = {}) {
+    const sb = requireSb();
+    const tenantId = getTenantId();
+    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+    if (!id) throw new Error("ID da conta é obrigatório.");
+
+    const row = {
+      title: String(payload.title || "").trim(),
+      category_id: payload.categoryId || null,
+      category_name: String(payload.category || "").trim() || null,
+      supplier: String(payload.supplier || "").trim() || null,
+      amount: Number(payload.amount || 0),
+      due_date: payload.dueDate || null,
+      status: String(payload.status || "pending"),
+      paid_at: payload.paidAt || null,
+      paid_method: String(payload.paidMethod || "").trim() || null,
+      notes: String(payload.notes || "").trim() || null,
+      group_id: String(payload.groupId || "").trim() || null,
+      installment: payload.installment != null ? Number(payload.installment) : null,
+      installments: payload.installments != null ? Number(payload.installments) : null,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await sb
+      .from("ap_payables")
+      .update(row)
+      .eq("id", id)
+      .eq("tenant_id", tenantId)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return mapRow(data);
+  }
+
+  async function remove(id) {
+    const sb = requireSb();
+    const tenantId = getTenantId();
+    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+    if (!id) throw new Error("ID da conta é obrigatório.");
+
+    const { error } = await sb
+      .from("ap_payables")
+      .delete()
+      .eq("id", id)
+      .eq("tenant_id", tenantId);
+
+    if (error) throw error;
+    return true;
+  }
+
+  return { list, create, update, remove };
+})();
 
 
 /* =========================
    ADMIN / CONFIGURAÇÕES
 ========================= */
 
-const ADMIN_PASSWORD = "admin123";
-const USERS_KEY = "core_users";
-const MACHINES_KEY = "core_machines";
-
-// ===== storage helpers (faltavam) =====
-function getUsers(){
-  return JSON.parse(localStorage.getItem(USERS_KEY) || "[]");
-}
-
-function saveUsers(list){
-  localStorage.setItem(USERS_KEY, JSON.stringify(list));
-}
-
-const USERS_SEEDED_KEY = "core_users_seeded.v1";
-
-function ensureDefaultUser(){
-  const seeded = localStorage.getItem(USERS_SEEDED_KEY) === "1";
-  if (seeded) return;
-
-  const defaults = [{
-    name: "Gustavo_dev",
-    role: "DEV",
-    pass: "core-dev-clubedosuplemento",
-    active: true
-  }];
-
-  saveUsers(defaults);
-  localStorage.setItem(USERS_SEEDED_KEY, "1");
-}
-ensureDefaultUser();
-
-
-function getMachines(){
-  return JSON.parse(localStorage.getItem(MACHINES_KEY) || "[]");
-}
-
-function saveMachines(list){
-  localStorage.setItem(MACHINES_KEY, JSON.stringify(list));
-}
+const ADMIN_PASSWORD = "adminconfig00";
 
 
 /* ---------- AUTH ---------- */
@@ -143,11 +641,10 @@ if (adminPasswordInput) {
 }
 
 
-/* ---------- CONFIG MODAL ---------- */
-function openSystemConfig() {
+async function openSystemConfig() {
   systemConfigOverlay.classList.remove("core-hidden");
-  switchConfigTab("users");
-  renderUsers();
+  switchConfigTab("machines");
+  await loadMachines();
   renderMachines();
 }
 
@@ -157,239 +654,236 @@ function closeSystemConfig() {
 
 /* ---------- TABS ---------- */
 function switchConfigTab(tab) {
-  configUsers.classList.toggle("hidden", tab !== "users");
-  configMachines.classList.toggle("hidden", tab !== "machines");
+  if (configMachines) {
+    configMachines.classList.toggle("hidden", tab !== "machines");
+  }
 
   document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
   const btn = document.querySelector(`.tab[data-tab="${tab}"]`);
-if (btn) btn.classList.add("active");
+  if (btn) btn.classList.add("active");
 
-userForm.classList.add("hidden");
-machineForm.classList.add("hidden");
-editingUserIndex = null;
-editingMachineIndex = null;
-saveUserBtn.textContent = "Salvar";
-saveMachineBtn.textContent = "Salvar";
-
-
+  if (machineForm) machineForm.classList.add("hidden");
+editingMachineId = null;
+if (saveMachineBtn) saveMachineBtn.textContent = "Salvar";
 }
-
-/* =========================
-   USUÁRIOS
-========================= */
-
-// 🔒 Usuário protegido (não pode editar nem excluir)
-const PROTECTED_USER_NAME = "Gustavo_dev";
-
-function isProtectedUser(u){
-  return String(u?.name || "").trim() === PROTECTED_USER_NAME;
-}
-
-
-let editingUserIndex = null;
-
-function showUserForm(){
-  userForm.classList.toggle("hidden");
-  if (!userForm.classList.contains("hidden")) {
-    userNameInput.focus();
-  }
-}
-
-function startEditUser(i){
-  const users = getUsers();
-  const u = users[i];
-
-    if (isProtectedUser(u)){
-    alert("Esse usuário é protegido e não pode ser editado.");
-    return;
-  }
-
-
-  editingUserIndex = i;
-  userForm.classList.remove("hidden");
-
-  userNameInput.value = u.name || "";
-  userRoleInput.value = u.role || "FUNC";
-  userPasswordInput.value = ""; // opcional (senha só se for mudar)
-
-  saveUserBtn.textContent = "Salvar alterações";
-}
-
-function saveUser(){
-  const name = userNameInput.value.trim();
-  const role = userRoleInput.value;
-  const pass = userPasswordInput.value.trim();
-
-  if (!name) return;
-
-  const users = getUsers();
-
-  if (editingUserIndex === null){
-    // novo
-    users.push({ name, role, pass, active:true });
-
-  } else {
-    // editar
-    users[editingUserIndex].name = name;
-    users[editingUserIndex].role = role;
-    if (pass) users[editingUserIndex].pass = pass;
-    editingUserIndex = null;
-    saveUserBtn.textContent = "Salvar";
-  }
-
-  saveUsers(users);
-
-  userNameInput.value = "";
-  userPasswordInput.value = "";
-  userForm.classList.add("hidden");
-
-  renderUsers();
-}
-
-function renderUsers(){
-  const users = getUsers();
-  usersList.innerHTML = "";
-
-  users.forEach((u,i)=>{
-    usersList.innerHTML += `
-      <div class="list-item">
-        <div>
-          <div style="font-weight:950; color:#0f172a;">${u.name}</div>
-          <div class="meta">Função: <b>${u.role}</b></div>
-        </div>
-        <div class="actions">
-  ${
-    isProtectedUser(u)
-      ? `<span class="meta" style="font-weight:950;color:#64748b;display:inline-flex;align-items:center;gap:6px;">
-           🔒 Protegido
-         </span>`
-      : `
-         <button class="icon-action edit" title="Editar" onclick="startEditUser(${i})">✏️</button>
-         <button class="icon-action del" title="Excluir" onclick="removeUser(${i})">✖</button>
-        `
-  }
-</div>
-
-      </div>
-    `;
-  });
-}
-
 
 /* =========================
    MAQUININHAS
 ========================= */
 
-let editingMachineIndex = null;
+let editingMachineId = null;
+let machinesCache = [];
+
+function getRateInput(key){
+  return document.querySelector(`[data-rate="${key}"]`);
+}
+
+function getRateCheckbox(key){
+  return document.querySelector(`[data-rate-enabled="${key}"]`);
+}
+
+function setRateEnabled(key, enabled){
+  const input = getRateInput(key);
+  const checkbox = getRateCheckbox(key);
+
+  const isEnabled = !!enabled;
+
+  if (checkbox) checkbox.checked = isEnabled;
+
+  if (input){
+    input.disabled = !isEnabled;
+    input.classList.toggle("is-disabled-rate", !isEnabled);
+
+    if (!isEnabled){
+      input.value = "";
+    }
+  }
+}
+
+function bindRateToggles(){
+  document.querySelectorAll("[data-rate-enabled]").forEach((checkbox) => {
+    checkbox.addEventListener("change", () => {
+      const key = checkbox.dataset.rateEnabled;
+      const input = getRateInput(key);
+      const enabled = checkbox.checked;
+
+      if (input){
+        input.disabled = !enabled;
+        input.classList.toggle("is-disabled-rate", !enabled);
+
+        if (!enabled){
+          input.value = "";
+        }
+      }
+    });
+  });
+}
+
+
+function clearMachineForm(){
+  machineNameInput.value = "";
+
+  document.querySelectorAll("[data-rate]").forEach(inp => {
+    inp.value = "";
+    inp.disabled = false;
+    inp.classList.remove("is-disabled-rate");
+  });
+
+  document.querySelectorAll("[data-rate-enabled]").forEach(chk => {
+    chk.checked = true;
+  });
+
+  editingMachineId = null;
+  if (saveMachineBtn) saveMachineBtn.textContent = "Salvar";
+}
 
 function showMachineForm(){
   machineForm.classList.toggle("hidden");
   if (!machineForm.classList.contains("hidden")) {
     machineNameInput.focus();
+  } else {
+    clearMachineForm();
   }
 }
 
-function startEditMachine(i){
-  const machines = getMachines();
-  const m = machines[i];
+async function loadMachines(){
+  try{
+    if (!window.MachinesStore?.list){
+      console.warn("[APP] MachinesStore não encontrado.");
+      machinesCache = [];
+      return machinesCache;
+    }
 
-  editingMachineIndex = i;
+    machinesCache = await window.MachinesStore.list({
+      limit: 1000,
+      orderBy: "name",
+      ascending: true
+    });
+
+    return machinesCache;
+  }catch(err){
+    console.error("[APP] Erro ao carregar maquininhas:", err);
+    machinesCache = [];
+    return machinesCache;
+  }
+}
+
+async function startEditMachine(id){
+  if (!id) return;
+
+  const m = machinesCache.find(x => String(x.id) === String(id));
+  if (!m) return;
+
+  editingMachineId = m.id;
   machineForm.classList.remove("hidden");
   machineNameInput.value = m.name || "";
 
-  // preencher taxas
-  document.querySelectorAll("[data-rate]").forEach(inp=>{
-    const key = inp.dataset.rate;
-    inp.value = Number(m.rates?.[key] || 0);
-  });
+  document.querySelectorAll("[data-rate]").forEach(inp => {
+  const key = inp.dataset.rate;
+  const cfg = m.rates?.[key] || { enabled: true, rate: 0 };
+
+  inp.value = cfg.enabled ? Number(cfg.rate || 0) : "";
+  inp.disabled = !cfg.enabled;
+  inp.classList.toggle("is-disabled-rate", !cfg.enabled);
+
+  const checkbox = getRateCheckbox(key);
+  if (checkbox) checkbox.checked = !!cfg.enabled;
+});
 
   saveMachineBtn.textContent = "Salvar alterações";
 }
 
-function saveMachine(){
+async function saveMachine(){
   const name = machineNameInput.value.trim();
   if (!name) return;
 
   const rates = {};
-  document.querySelectorAll("[data-rate]").forEach(inp=>{
-    rates[inp.dataset.rate] = Number(inp.value || 0);
-  });
 
-  const machines = getMachines();
+document.querySelectorAll("[data-rate]").forEach(inp => {
+  const key = inp.dataset.rate;
+  const checkbox = getRateCheckbox(key);
+  const enabled = checkbox ? checkbox.checked : true;
 
-  if (editingMachineIndex === null){
-    machines.push({ name, rates });
-  } else {
-    machines[editingMachineIndex].name = name;
-    machines[editingMachineIndex].rates = rates;
-    editingMachineIndex = null;
-    saveMachineBtn.textContent = "Salvar";
+  rates[key] = {
+    enabled,
+    rate: enabled ? Number(inp.value || 0) : 0
+  };
+});
+
+  try{
+    if (editingMachineId === null){
+      await window.MachinesStore.create({ name, rates });
+    } else {
+      await window.MachinesStore.update(editingMachineId, { name, rates });
+    }
+
+    await loadMachines();
+    renderMachines();
+
+    clearMachineForm();
+    machineForm.classList.add("hidden");
+  }catch(err){
+    console.error("[APP] Erro ao salvar maquininha:", err);
+    alert("Não foi possível salvar a maquininha.");
   }
-
-  saveMachines(machines);
-
-  machineNameInput.value = "";
-  document.querySelectorAll("[data-rate]").forEach(inp => inp.value = "");
-  machineForm.classList.add("hidden");
-
-  renderMachines();
 }
 
 function renderMachines(){
-  const machines = getMachines();
   machinesList.innerHTML = "";
 
-  machines.forEach((m,i)=>{
+  machinesCache.forEach((m) => {
     machinesList.innerHTML += `
       <div class="list-item">
         <div>
           <div style="font-weight:950; color:#0f172a;">${m.name}</div>
-          <div class="meta">Débito: <b>${Number(m.rates?.debito||0)}%</b> • Crédito 1x: <b>${Number(m.rates?.["1"]||0)}%</b> • ...</div>
+          <div class="meta">
+  Débito: <b>${m.rates?.debito?.enabled ? `${Number(m.rates?.debito?.rate || 0)}%` : "desabilitado"}</b> •
+  Crédito 1x: <b>${m.rates?.["1"]?.enabled ? `${Number(m.rates?.["1"]?.rate || 0)}%` : "desabilitado"}</b> •
+  Crédito 2x: <b>${m.rates?.["2"]?.enabled ? `${Number(m.rates?.["2"]?.rate || 0)}%` : "desabilitado"}</b>
+</div>
         </div>
         <div class="actions">
-          <button class="icon-action edit" title="Editar" onclick="startEditMachine(${i})">✏️</button>
-          <button class="icon-action del" title="Excluir" onclick="removeMachine(${i})">✖</button>
+          <button class="icon-action edit" title="Editar" onclick="startEditMachine('${m.id}')">✏️</button>
+          <button class="icon-action del" title="Excluir" onclick="removeMachine('${m.id}')">✖</button>
         </div>
       </div>
     `;
   });
 }
 
+async function removeMachine(id){
+  if (!id) return;
 
-btnNewUser.onclick = showUserForm;
-saveUserBtn.onclick = saveUser;
+  const ok = confirm("Deseja realmente excluir esta maquininha?");
+  if (!ok) return;
 
-btnNewMachine.onclick = showMachineForm;
-saveMachineBtn.onclick = saveMachine;
+  try{
+    await window.MachinesStore.remove(id);
 
-renderUsers();
-renderMachines();
+    await loadMachines();
+    renderMachines();
 
-function removeUser(i){
-  // (se quiser no futuro, pede senha admin aqui)
-  const users = getUsers();
-  users.splice(i, 1);
-  saveUsers(users);
-
-  // se estava editando e apagou o item, reseta estado
-  editingUserIndex = null;
-  saveUserBtn.textContent = "Salvar";
-  userForm.classList.add("hidden");
-
-  renderUsers();
+    if (editingMachineId === id){
+      clearMachineForm();
+      machineForm.classList.add("hidden");
+    }
+  }catch(err){
+    console.error("[APP] Erro ao excluir maquininha:", err);
+    alert("Não foi possível excluir a maquininha.");
+  }
 }
 
-function removeMachine(i){
-  const machines = getMachines();
-  machines.splice(i, 1);
-  saveMachines(machines);
-
-  editingMachineIndex = null;
-  saveMachineBtn.textContent = "Salvar";
-  machineForm.classList.add("hidden");
-
-  renderMachines();
+if (btnNewMachine){
+  btnNewMachine.addEventListener("click", showMachineForm);
 }
+
+if (saveMachineBtn){
+  saveMachineBtn.addEventListener("click", async () => {
+    await saveMachine();
+  });
+}
+
+bindRateToggles();
 
 /* =========================
    CHAT GLOBAL (LocalStorage)
@@ -439,7 +933,7 @@ function chatSave(list){
 
 function chatGetSessionUser(){
   // tenta pegar de CoreAuth; fallback pro texto da topbar
-  const s = window.CoreAuth?.getSession?.();
+  const s = window.CoreAuth?.getCurrentUser?.();
   if (s && (s.name || s.user || s.username)){
     return {
       id: String(s.id || s.user || s.username || s.name),
@@ -468,22 +962,13 @@ function chatLoadUsers(){
 }
 
 function isAdminSession(){
-  const s = window.CoreAuth?.getSession?.();
+  const s = window.CoreAuth?.getCurrentUser?.();
   const role = String(s?.role || "").toUpperCase();
   return role === "ADMIN" || role === "DEV";
 }
 
 function validateAdminPassword(pass){
-  const p = String(pass || "").trim();
-  if (!p) return false;
-
-  const users = chatLoadUsers();
-  return users.some(u =>
-    u &&
-    u.active !== false &&
-    String(u.role || "").toUpperCase() === "ADMIN" &&
-    String(u.pass || "").trim() === p
-  );
+  return String(pass || "").trim() === ADMIN_PASSWORD;
 }
 
 function chatClearAll(){

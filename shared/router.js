@@ -24,7 +24,7 @@
 
       const s = document.createElement("script");
       s.id = id;
-      s.src = src + `?v=${Date.now()}`; // evita cache
+      s.src = src + `?v=${Date.now()}`;
       s.onload = () => resolve();
       s.onerror = () => reject(new Error(`Falha ao carregar JS: ${src}`));
       document.body.appendChild(s);
@@ -33,29 +33,16 @@
 
   function createRouter({ mountEl }) {
     let current = "home";
-    
+
     window.CoreRouterState = window.CoreRouterState || {};
     window.CoreRouterState.current = current;
 
-
     async function render(pageName) {
-      // ✅ PROTEÇÃO ROBUSTA (não depende do auth existir 100%)
-      const auth = window.CoreAuth;
-
-      if (!auth) {
-        // Se auth ainda não carregou, cai no login por segurança
-        pageName = "login";
-      } else if (!auth.canAccess(pageName)) {
-        pageName = auth.isLoggedIn() ? "home" : "login";
-      }
-
       current = pageName;
       window.CoreRouterState.current = current;
 
-      // ✅ modo login: topbar minimalista (só logo)
-document.body.classList.toggle("is-login", pageName === "login");
-
-
+      // CORE não usa mais tela de login interna
+      document.body.classList.remove("is-login");
 
       const base = `pages/${pageName}/${pageName}`;
 
@@ -68,15 +55,13 @@ document.body.classList.toggle("is-login", pageName === "login");
         mods[pageName]({ go });
       }
 
-       if (window.CoreUI) {
-    window.CoreUI.updateTopbar();
+      if (window.CoreUI) {
+        window.CoreUI.updateTopbar();
       }
 
-      // 📌 AUDITORIA: visualização de página
-    if (window.CoreAudit) {
-    window.CoreAudit.log("PAGE_VIEW", { page: current });
-    }
-
+      if (window.CoreAudit) {
+        window.CoreAudit.log("PAGE_VIEW", { page: current });
+      }
     }
 
     function go(pageName) {
