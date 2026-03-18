@@ -1,442 +1,742 @@
-// pages/home/home.js
 window.CorePageModules = window.CorePageModules || {};
-window.CorePageModules.home = function ({ go }) {
+window.CorePageModules.home = function () {
+  const DONUT_COLORS = [
+    "#2563eb",
+    "#7c3aed",
+    "#f59e0b",
+    "#10b981",
+    "#ef4444",
+    "#06b6d4",
+    "#8b5cf6",
+    "#84cc16"
+  ];
 
-  // Navegação dos cards principais
-document.querySelectorAll("[data-go]").forEach(el => {
-  el.addEventListener("click", (ev) => {
-    const page = el.getAttribute("data-go");
-
-    // se não pode acessar, trava clique
-    if (!window.CoreAuth?.canAccess?.(page)) {
-      ev.preventDefault();
-      ev.stopPropagation();
-      return;
-    }
-
-    go(page);
-  });
-});
-
-// trava visual do card Relatórios pro FUNC
-const user = window.CoreAuth?.getCurrentUser?.();
-const isFunc = (user?.role || "FUNC") === "FUNC";
-if (isFunc) {
-  const cardRel = document.querySelector('[data-go="relatorios"]');
-  if (cardRel) {
-    cardRel.classList.add("locked");
-    cardRel.setAttribute("aria-disabled", "true");
-    cardRel.style.pointerEvents = "auto"; // mantém hover/visual, mas clique é bloqueado pelo JS
-  }
-}
-
-
-  // ===== Atalhos Rápidos =====
-  const modal = document.getElementById("clientModal");
-  const cName = document.getElementById("cName");
-  const cPhone = document.getElementById("cPhone");
-  const cCpf = document.getElementById("cCpf");
-  const cNote = document.getElementById("cNote");
-  const btnCancel = document.getElementById("btnClientCancel");
-  const btnSave = document.getElementById("btnClientSave");
-
-  const STORAGE_KEY = "corepos:customers";
-
-  function openClientModal(){
-    modal.classList.remove("hidden");
-    cName.value = "";
-    cPhone.value = "";
-    cCpf.value = "";
-    cNote.value = "";
-    cName.focus();
-  }
-
-  function closeClientModal(){
-    modal.classList.add("hidden");
-  }
-
-  function loadCustomers(){
-    try{
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    }catch{
-      return [];
-    }
-  }
-
-  function saveCustomers(list){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  }
-
-  function normalize(str){
-    return (str || "").trim().toLowerCase();
-  }
-
-  function saveClient(){
-    const name = (cName.value || "").trim();
-    const phone = (cPhone.value || "").trim();
-    const cpf = (cCpf.value || "").trim();
-    const note = (cNote.value || "").trim();
-
-    if (!name){
-      alert("Informe o nome do cliente.");
-      return;
-    }
-
-    const customers = loadCustomers();
-
-    // Evita duplicar por CPF ou telefone (bem simples)
-    if (cpf && customers.some(c => normalize(c.cpf) === normalize(cpf))){
-      alert("Já existe cliente com esse CPF.");
-      return;
-    }
-    if (phone && customers.some(c => normalize(c.phone) === normalize(phone))){
-      alert("Já existe cliente com esse telefone.");
-      return;
-    }
-
-    const id = `c_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-    customers.push({ id, name, phone, cpf, note, createdAt: Date.now() });
-    saveCustomers(customers);
-
-    alert("Cliente cadastrado (mock).");
-    closeClientModal();
-  }
-
-  // Click nos atalhos
-  document.querySelectorAll(".quick-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const action = btn.getAttribute("data-action");
-
-      if (action === "clientes") openClientModal();
-      else if (action === "sangria") alert("Sangria (mock) — vamos implementar no Caixa.");
-      else if (action === "suprimento") alert("Suprimento (mock) — vamos implementar no Caixa.");
-    });
-  });
-
-  // Modal events
-  btnCancel.addEventListener("click", closeClientModal);
-  btnSave.addEventListener("click", saveClient);
-
-  // Fechar clicando fora do card
-  modal.addEventListener("click", (e) => {
-    if (e.target === modal) closeClientModal();
-  });
-
-  // Esc fecha
-  document.addEventListener("keydown", (e) => {
-    if (!modal.classList.contains("hidden") && e.key === "Escape") closeClientModal();
-  });
-
-(function () {
-  const DEV_PASSWORD = "core-dev";
-
-  function factoryResetCore() {
-    // apaga só o que é do CORE / COREPOS
-    const keys = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if (!k) continue;
-
-      // ajuste os prefixes aqui se quiser
-      if (
-        k.startsWith("core.") ||
-        k.startsWith("corepos:") ||
-        k.startsWith("corepos") ||
-        k.startsWith("COREPOS")
-      ) {
-        keys.push(k);
-      }
-    }
-
-    // remove fora do loop pra não bagunçar o índice
-    keys.forEach(k => localStorage.removeItem(k));
-
-    alert(`Factory reset concluído ✅\n\nRemovidas ${keys.length} chaves do CORE.\nA página vai recarregar.`);
-    location.reload();
-  }
-
-  function askAndReset() {
-    const pass = prompt("Senha DEV (Factory Reset):");
-    if (pass !== DEV_PASSWORD) {
-      alert("Senha incorreta.");
-      return;
-    }
-
-    const ok = confirm(
-      "⚠️ FACTORY RESET\n\nIsso vai apagar TODOS os dados do sistema (produtos, caixa, eventos, layouts DEV, etc.).\n\nDeseja continuar?"
-    );
-    if (!ok) return;
-
-    // segunda confirmação pra evitar acidente
-    const ok2 = confirm("Última confirmação: apagar TUDO e voltar ao padrão de fábrica?");
-    if (!ok2) return;
-
-    factoryResetCore();
-  }
-
-  document.addEventListener("keydown", (e) => {
-    if (e.ctrlKey && e.shiftKey && (e.key === "L" || e.key === "l")) {
-      e.preventDefault();
-      askAndReset();
-    }
-  });
-})();
-
-
-  // ===== Resumo do Dia (Caixa) =====
-  function moneyBR(v){
+  function moneyBR(v) {
     const n = Number(v || 0);
     return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   }
 
-  function fmtDateBR(d){
-    return d.toLocaleDateString("pt-BR");
+  function toDateSafe(value) {
+    if (!value) return null;
+    const d = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
   }
 
-  function renderDaySummary(){
-    const $date = document.getElementById("daySummaryDate");
-    const $sales = document.getElementById("daySummarySales");
-    const $cust = document.getElementById("daySummaryCustomers");
+  function formatDateBR(date) {
+    return new Intl.DateTimeFormat("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    }).format(date);
+  }
 
-    if ($date) $date.textContent = `(${fmtDateBR(new Date())})`;
+  function startOfToday() {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  }
 
-    // Se CoreCash não existir ainda, fica no zero mesmo
-    if (!window.CoreCash){
-      if ($sales) $sales.textContent = moneyBR(0);
-      if ($cust) $cust.textContent = "0";
-      return;
+  function endOfToday() {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  }
+
+  function isToday(value) {
+    const d = toDateSafe(value);
+    if (!d) return false;
+    return d >= startOfToday() && d <= endOfToday();
+  }
+
+  function getSaleDate(sale) {
+    return (
+      sale?.createdAt ||
+      sale?.created_at ||
+      sale?.date ||
+      sale?.saleDate ||
+      sale?.soldAt ||
+      sale?.datetime ||
+      null
+    );
+  }
+
+  function getSaleTotal(sale) {
+    return Number(
+      sale?.total ??
+      sale?.grandTotal ??
+      sale?.finalTotal ??
+      sale?.amount ??
+      sale?.paidTotal ??
+      0
+    );
+  }
+
+  function getSaleCustomerSnapshot(sale) {
+  return (
+    sale?.customerSnapshot ||
+    sale?.customer_snapshot ||
+    sale?.customer ||
+    sale?.client ||
+    null
+  );
+}
+
+  function getSaleCustomerName(sale) {
+  const snap = getSaleCustomerSnapshot(sale);
+
+  return (
+    sale?.customerName ||
+    sale?.customer_name ||
+    snap?.name ||
+    sale?.clientName ||
+    sale?.client_name ||
+    ""
+  ).trim();
+}
+
+  function getSaleCustomerPhone(sale) {
+  const snap = getSaleCustomerSnapshot(sale);
+
+  return (
+    sale?.customerPhone ||
+    sale?.customer_phone ||
+    snap?.phone ||
+    sale?.clientPhone ||
+    sale?.client_phone ||
+    ""
+  ).trim();
+}
+
+  function getSaleItems(sale) {
+  if (Array.isArray(sale?.items)) return sale.items;
+  if (Array.isArray(sale?.sale_items)) return sale.sale_items;
+  if (Array.isArray(sale?.line_items)) return sale.line_items;
+  if (Array.isArray(sale?.lineItems)) return sale.lineItems;
+
+  if (typeof sale?.itemsJson === "string") {
+    try {
+      const parsed = JSON.parse(sale.itemsJson);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+  function getItemName(item) {
+    return (
+      item?.name ||
+      item?.productName ||
+      item?.product_name ||
+      item?.title ||
+      item?.label ||
+      "Produto sem nome"
+    ).trim();
+  }
+
+  function getItemQty(item) {
+    return Number(item?.qty ?? item?.quantity ?? item?.qtd ?? 0);
+  }
+
+  async function loadTodaySalesSafe() {
+    try {
+      if (window.SalesStore?.list) {
+        const rows = await window.SalesStore.list({
+  limit: 1000,
+  orderBy: "created_at",
+  ascending: false,
+  startDateISO: startOfToday().toISOString(),
+  endDateISO: endOfToday().toISOString()
+});
+
+        return Array.isArray(rows) ? rows : [];
+      }
+    } catch (err) {
+      console.warn("[HOME] SalesStore.list falhou, tentando fallback:", err);
     }
 
-    const sum = window.CoreCash.getSummary?.() || null;
-
-    const salesTotal = sum ? (sum.salesTotal || 0) : 0;
-    const salesCount = sum ? (sum.salesCount || 0) : 0;
-
-    // Vendas = valor bruto vendido no dia
-    if ($sales) $sales.textContent = moneyBR(salesTotal);
-
-    // Clientes = quantidade de vendas do dia (como você pediu)
-    if ($cust) $cust.textContent = String(salesCount);
-  }
-
-  renderDaySummary();
-
-  // ===== Notificações (Estoque) =====
-  const KEY_PRODUCTS = "core.products.v1";
-
-  function loadProductsSafe(){
-    try{ return JSON.parse(localStorage.getItem(KEY_PRODUCTS) || "[]"); }
-    catch{ return []; }
-  }
-
-  function getStockAlerts(){
-    const products = loadProductsSafe();
-
-    // só ATIVOS
-    const active = products.filter(p => (p.status || "active") !== "inactive");
-
-    // margem "perto do mínimo": 20% do mínimo (mínimo 1)
-    function nearLimit(min){
-      const m = Number(min || 0);
-      if (m <= 0) return 0;
-      return m + Math.max(1, Math.ceil(m * 0.2));
+    const fallbackKeys = ["corepos:sales", "core:sales", "sales"];
+    for (const key of fallbackKeys) {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(key) || "[]");
+        if (Array.isArray(parsed)) {
+          return parsed.filter((sale) => isToday(getSaleDate(sale)));
+        }
+      } catch {}
     }
+
+    return [];
+  }
+
+  async function loadProductsSafe() {
+    try {
+      if (window.ProductsStore?.list) {
+        return await window.ProductsStore.list({
+          limit: 1000,
+          orderBy: "name",
+          ascending: true
+        });
+      }
+    } catch (err) {
+      console.error("[HOME] Erro ao carregar produtos:", err);
+    }
+    return [];
+  }
+
+  async function getProductsMapSafe() {
+  const products = await loadProductsSafe();
+  const map = new Map();
+
+  for (const p of products) {
+    map.set(String(p.id), {
+      name: p.name || "Produto sem nome",
+      image: p.imageData || p.image || p.photo || ""
+    });
+  }
+
+  return map;
+}
+
+  async function getStockAlerts() {
+    const products = await loadProductsSafe();
+    const active = products.filter((p) => (p.status || "active") !== "inactive");
 
     const zero = [];
     const below = [];
-    const near = [];
 
-    for (const p of active){
+    for (const p of active) {
       const stock = Number(p.stockOnHand || 0);
       const min = Number(p.stockMin || 0);
 
-      if (stock <= 0){
+      if (stock <= 0) {
         zero.push(p);
         continue;
       }
 
-      if (min > 0 && stock < min){
+      if (min > 0 && stock < min) {
         below.push(p);
-        continue;
-      }
-
-      if (min > 0 && stock <= nearLimit(min)){
-        near.push(p);
       }
     }
 
-    // ordena por gravidade e “mais crítico primeiro”
-    zero.sort((a,b) => Number(a.stockOnHand||0) - Number(b.stockOnHand||0));
-    below.sort((a,b) => (Number(a.stockOnHand||0) - Number(a.stockMin||0)) - (Number(b.stockOnHand||0) - Number(b.stockMin||0)));
-    near.sort((a,b) => (Number(a.stockOnHand||0) - Number(a.stockMin||0)) - (Number(b.stockOnHand||0) - Number(b.stockMin||0)));
+    zero.sort((a, b) => Number(a.stockOnHand || 0) - Number(b.stockOnHand || 0));
+    below.sort(
+      (a, b) =>
+        (Number(a.stockOnHand || 0) - Number(a.stockMin || 0)) -
+        (Number(b.stockOnHand || 0) - Number(b.stockMin || 0))
+    );
 
-    return { zero, below, near };
+    return { zero, below };
   }
 
-  function renderNotifications(){
-  const kpi = document.getElementById("notifyKpi");
-  const preview = document.getElementById("notifyPreview");
+  function getPayableDate(item) {
+    return (
+      item?.dueDate ||
+      item?.due_date ||
+      item?.vencimento ||
+      item?.dataVencimento ||
+      item?.data_vencimento ||
+      null
+    );
+  }
 
-  const { zero, below, near } = getStockAlerts();
-  const total = zero.length + below.length + near.length;
+  function isPayablePaid(item) {
+    const status = String(item?.status || "").toLowerCase();
+    return !!(
+      item?.paid === true ||
+      item?.isPaid === true ||
+      item?.pago === true ||
+      status === "pago" ||
+      status === "paid"
+    );
+  }
 
-  if (kpi) kpi.textContent = `(${total})`;
+  function getPayableTitle(item) {
+    return (
+      item?.descricao ||
+      item?.description ||
+      item?.title ||
+      item?.nome ||
+      "Conta sem descrição"
+    ).trim();
+  }
 
-  if (!preview) return;
+  function getPayableAmount(item) {
+    return Number(
+      item?.valor ??
+      item?.amount ??
+      item?.total ??
+      item?.value ??
+      0
+    );
+  }
 
-  // sem notificações
-  if (!total){
-    preview.innerHTML = `
-      <div class="notifications-empty">
-        <div class="notif-text">Nenhuma notificação no momento</div>
-      </div>
-    `;
+  function parseISODateSafe(iso) {
+  if (!iso) return null;
+
+  const s = String(iso).trim();
+
+  if (s.includes("T")) {
+    const d = new Date(s);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  const [y, m, d] = s.split("-").map(Number);
+  if (!y || !m || !d) return null;
+
+  return new Date(y, m - 1, d, 0, 0, 0, 0);
+}
+
+function dayStart(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function diffDays(a, b) {
+  const A = dayStart(a).getTime();
+  const B = dayStart(b).getTime();
+  return Math.floor((B - A) / 86400000);
+}
+
+function getPayableStatus(item) {
+  const status = String(item?.status || "").toLowerCase();
+  if (status === "paid" || status === "pago") return "paid";
+
+  const due = parseISODateSafe(
+    item?.dueDate ||
+    item?.due_date ||
+    item?.vencimento ||
+    item?.dataVencimento ||
+    item?.data_vencimento
+  );
+
+  if (!due) return "pending";
+
+  const today = dayStart(new Date());
+
+  if (due.getTime() < today.getTime()) return "late";
+  if (due.getTime() === today.getTime()) return "today";
+  return "pending";
+}
+
+  async function loadPayablesSafe() {
+  try {
+    if (window.APPayablesStore?.list) {
+      const rows = await window.APPayablesStore.list({
+        limit: 5000,
+        orderBy: "due_date",
+        ascending: true
+      });
+
+      return Array.isArray(rows) ? rows : [];
+    }
+  } catch (err) {
+    console.warn("[HOME] Falha ao carregar contas a pagar via APPayablesStore:", err);
+  }
+
+  const fallbackKeys = [
+    "corepos:contas_pagar",
+    "core:contas_pagar",
+    "contas_pagar"
+  ];
+
+  for (const key of fallbackKeys) {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(key) || "[]");
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+
+  return [];
+}
+
+  async function getPayablesAlerts() {
+  const rows = await loadPayablesSafe();
+  const today = dayStart(new Date());
+
+  const overdue = [];
+  const dueToday = [];
+  const upcoming = [];
+
+  for (const row of rows) {
+    const status = getPayableStatus(row);
+    if (status === "paid") continue;
+
+    const due = parseISODateSafe(getPayableDate(row));
+    if (!due) continue;
+
+    if (status === "late") {
+      overdue.push(row);
+      continue;
+    }
+
+    if (status === "today") {
+      dueToday.push(row);
+      continue;
+    }
+
+    const days = diffDays(today, due);
+    if (days >= 1 && days <= 7) {
+      upcoming.push(row);
+    }
+  }
+
+  overdue.sort((a, b) => parseISODateSafe(getPayableDate(a)) - parseISODateSafe(getPayableDate(b)));
+  dueToday.sort((a, b) => parseISODateSafe(getPayableDate(a)) - parseISODateSafe(getPayableDate(b)));
+  upcoming.sort((a, b) => parseISODateSafe(getPayableDate(a)) - parseISODateSafe(getPayableDate(b)));
+
+  return { overdue, today: dueToday, upcoming };
+}
+
+  function renderDateBadge() {
+    const badge = document.getElementById("todayDateBadge");
+    if (badge) {
+      badge.textContent = `Hoje • ${formatDateBR(new Date())}`;
+    }
+  }
+
+  async function renderTopKpis(sales) {
+    const revenue = sales.reduce((acc, sale) => acc + getSaleTotal(sale), 0);
+
+    const customerMap = new Map();
+for (const sale of sales) {
+  const snap = getSaleCustomerSnapshot(sale);
+  const customerName = getSaleCustomerName(sale);
+  if (!customerName) continue;
+
+  const key =
+    String(snap?.id || "").trim() ||
+    String(snap?.doc || "").trim() ||
+    String(getSaleCustomerPhone(sale) || "").trim() ||
+    customerName.toLowerCase();
+
+  if (!customerMap.has(key)) {
+    customerMap.set(key, customerName);
+  }
+}
+
+    const customersCount = customerMap.size;
+
+    const $revenue = document.getElementById("kpiRevenue");
+    const $customersCount = document.getElementById("kpiCustomersCount");
+
+    if ($revenue) $revenue.textContent = moneyBR(revenue);
+    if ($customersCount) $customersCount.textContent = String(customersCount);
+  }
+
+  async function buildProductTotalsFromSales(sales) {
+  const map = new Map();
+  const productsMap = await getProductsMapSafe();
+
+  for (const sale of sales) {
+    const items = getSaleItems(sale);
+
+    for (const item of items) {
+      const qty = getItemQty(item);
+      if (!qty) continue;
+
+      const productId = String(
+        item?.productId ||
+        item?.product_id ||
+        ""
+      ).trim();
+
+      const productRef = productId ? productsMap.get(productId) : null;
+      const name = productRef?.name || getItemName(item);
+      const image = productRef?.image || item?.image || item?.photo || "";
+
+      if (!map.has(name)) {
+        map.set(name, {
+          name,
+          qty: 0,
+          image
+        });
+      }
+
+      const ref = map.get(name);
+      ref.qty += qty;
+
+      if (!ref.image && image) {
+        ref.image = image;
+      }
+    }
+  }
+
+  return Array.from(map.values()).sort((a, b) => b.qty - a.qty);
+}
+
+ async function renderProductsChart(sales) {
+  const chart = document.getElementById("salesDonutChart");
+  const center = document.getElementById("donutCenterValue");
+  const legend = document.getElementById("salesLegend");
+
+  if (!chart || !center || !legend) return;
+
+  const totals = await buildProductTotalsFromSales(sales);
+  const top = totals.slice(0, 6);
+  const grandTotal = top.reduce((acc, item) => acc + item.qty, 0);
+
+  center.textContent = String(grandTotal);
+
+  if (!top.length) {
+    chart.style.background = "conic-gradient(#cbd5e1 0deg 360deg)";
+    legend.innerHTML = `<div class="empty-state-inline">Nenhuma saída de produto hoje.</div>`;
     return;
   }
 
-  // com notificações: mostra itens no card (até 3) com layout bonito + scroll
-const top = [...zero, ...below, ...near].slice(0, 3);
+  let currentDeg = 0;
+  const segments = top.map((item, index) => {
+    const portion = grandTotal > 0 ? item.qty / grandTotal : 0;
+    const deg = portion * 360;
+    const start = currentDeg;
+    const end = currentDeg + deg;
+    currentDeg = end;
 
-preview.innerHTML = `
-  <div class="notify-mini">
-    ${top.map(p => {
-      const stock = Number(p.stockOnHand || 0);
-      const min = Number(p.stockMin || 0);
-      const img = p.imageData
-        ? `<img src="${p.imageData}" alt="">`
-        : ``;
+    return {
+      ...item,
+      color: DONUT_COLORS[index % DONUT_COLORS.length],
+      start,
+      end,
+      percent: portion * 100
+    };
+  });
 
-      const badge =
-        stock <= 0 ? `<span class="pill danger">ZERADO</span>` :
-        (min > 0 && stock < min) ? `<span class="pill warn">ABAIXO</span>` :
-        `<span class="pill ok">PERTO</span>`;
+  chart.style.background = `conic-gradient(${segments
+    .map((seg) => `${seg.color} ${seg.start}deg ${seg.end}deg`)
+    .join(", ")})`;
 
-      return `
-        <div class="notify-item">
-          <div class="notify-thumb">${img || "IMG"}</div>
-          <div class="notify-main">
-            <div class="notify-name">${p.name || "—"}</div>
-            <div class="notify-meta">SKU: <b>${p.sku || "—"}</b> • Estoque: <b>${stock}</b> • Min: <b>${min}</b></div>
+  legend.innerHTML = segments
+  .map(
+    (seg) => `
+      <div class="legend-row">
+        <div class="legend-left">
+          <span class="legend-dot" style="background:${seg.color};"></span>
+
+          <div class="product-thumb-wrap">
+            ${
+              seg.image
+                ? `<img class="product-thumb" src="${seg.image}" alt="${seg.name}">`
+                : `<div class="product-thumb product-thumb--placeholder">IMG</div>`
+            }
           </div>
-          <div class="notify-badge">${badge}</div>
+
+          <div class="legend-main">
+            <div class="legend-name">${seg.name}</div>
+            <div class="legend-meta">${seg.percent.toFixed(1)}% dos itens vendidos</div>
+          </div>
         </div>
-      `;
-    }).join("")}
 
-    ${total > top.length ? `<div class="muted small" style="margin-top:6px;">Clique para ver todas…</div>` : ``}
-  </div>
-`;
-
-
-  renderNotifyModalIfOpen();
+        <div class="legend-value">${seg.qty} un</div>
+      </div>
+    `
+  )
+  .join("");
 }
 
+  async function renderStockAlerts() {
+    const stockSummary = document.getElementById("stockAlertSummary");
+    const stockList = document.getElementById("stockAlertsList");
+    const stockBadge = document.getElementById("stockAlertsBadge");
 
-  // Modal grandão
-  const notifyModal = document.getElementById("notifyModal");
-  const btnNotifyClose = document.getElementById("btnNotifyClose");
-  const notifyPreview = document.getElementById("notifyPreview");
-  const notifyModalBody = document.getElementById("notifyModalBody");
-  const notifyModalHint = document.getElementById("notifyModalHint");
+    const { zero, below } = await getStockAlerts();
+    const stockTotal = zero.length + below.length;
 
-  function openNotifyModal(){
-    if (!notifyModal) return;
-    notifyModal.classList.remove("hidden");
-    renderNotifyModal();
-  }
+    if (stockBadge) stockBadge.textContent = String(stockTotal);
 
-  function closeNotifyModal(){
-    if (!notifyModal) return;
-    notifyModal.classList.add("hidden");
-  }
-
-  function renderNotifyModalIfOpen(){
-    if (!notifyModal || notifyModal.classList.contains("hidden")) return;
-    renderNotifyModal();
-  }
-
-  function renderNotifyModal(){
-    const { zero, below, near } = getStockAlerts();
-    const total = zero.length + below.length + near.length;
-
-    if (notifyModalHint){
-      notifyModalHint.textContent = total
-        ? `Produtos ativos com atenção de estoque: ${total}`
-        : "Nenhuma notificação no momento.";
+    if (stockSummary) {
+      stockSummary.textContent = stockTotal
+        ? `${stockTotal} alerta(s) de estoque`
+        : "Nenhum alerta no momento";
     }
 
-    if (!notifyModalBody) return;
+    if (stockList) {
+      const items = [
+  ...zero.map((p) => ({
+    title: p.name || "Produto sem nome",
+    meta: `SKU: ${p.sku || "—"} • Estoque: ${Number(p.stockOnHand || 0)} • Mín: ${Number(p.stockMin || 0)}`,
+    pill: "ZERADO",
+    kind: "danger",
+    image: p.imageData || p.image || p.photo || ""
+  })),
+  ...below.map((p) => ({
+    title: p.name || "Produto sem nome",
+    meta: `SKU: ${p.sku || "—"} • Estoque: ${Number(p.stockOnHand || 0)} • Mín: ${Number(p.stockMin || 0)}`,
+    pill: "ABAIXO",
+    kind: "warn",
+    image: p.imageData || p.image || p.photo || ""
+  }))
+];
 
-    if (!total){
-      notifyModalBody.innerHTML = `
-        <div class="notifications-empty" style="padding:18px 0;">
-          <div class="notif-ico">🔔</div>
-          <div class="notif-text">Nenhuma notificação no momento</div>
+      stockList.innerHTML = items.length
+  ? items.map((item) => `
+      <div class="alert-item alert-item--product">
+        <div class="alert-thumb">
+          ${
+            item.image
+              ? `<img src="${item.image}" alt="${item.title}">`
+              : `<span class="alert-thumb-fallback">IMG</span>`
+          }
+        </div>
+
+        <div class="alert-item-main">
+          <div class="alert-item-title">${item.title}</div>
+          <div class="alert-item-meta">${item.meta}</div>
+        </div>
+
+        <span class="alert-pill ${item.kind}">${item.pill}</span>
+      </div>
+    `).join("")
+  : `<div class="empty-state-inline">Nenhum alerta de estoque.</div>`;
+    }
+  }
+
+  async function renderPayablesAlerts() {
+    const payablesSummary = document.getElementById("payablesAlertSummary");
+    const payablesList = document.getElementById("payablesAlertsList");
+    const payablesBadge = document.getElementById("payablesAlertsBadge");
+
+    const { overdue, today, upcoming } = await getPayablesAlerts();
+    const total = overdue.length + today.length + upcoming.length;
+
+    if (payablesBadge) payablesBadge.textContent = String(total);
+
+    if (payablesSummary) {
+      if (overdue.length) {
+        payablesSummary.textContent = `${overdue.length} vencida(s), ${today.length} vence(m) hoje`;
+      } else if (today.length) {
+        payablesSummary.textContent = `${today.length} conta(s) vence(m) hoje`;
+      } else if (upcoming.length) {
+        payablesSummary.textContent = `${upcoming.length} conta(s) vence(m) em até 7 dias`;
+      } else {
+        payablesSummary.textContent = "Nenhum vencimento próximo";
+      }
+    }
+
+    if (payablesList) {
+      const items = [
+        ...overdue.map((p) => ({
+          title: getPayableTitle(p),
+          meta: `Vencimento: ${formatDateBR(new Date(getPayableDate(p)))} • ${moneyBR(getPayableAmount(p))}`,
+          pill: "VENCIDA",
+          kind: "danger"
+        })),
+        ...today.map((p) => ({
+          title: getPayableTitle(p),
+          meta: `Vence hoje • ${moneyBR(getPayableAmount(p))}`,
+          pill: "HOJE",
+          kind: "warn"
+        })),
+        ...upcoming.map((p) => ({
+          title: getPayableTitle(p),
+          meta: `Vencimento: ${formatDateBR(new Date(getPayableDate(p)))} • ${moneyBR(getPayableAmount(p))}`,
+          pill: "PRÓXIMA",
+          kind: "ok"
+        }))
+      ].slice(0, 8);
+
+      payablesList.innerHTML = items.length
+        ? items.map((item) => `
+            <div class="alert-item">
+              <div class="alert-item-main">
+                <div class="alert-item-title">${item.title}</div>
+                <div class="alert-item-meta">${item.meta}</div>
+              </div>
+              <span class="alert-pill ${item.kind}">${item.pill}</span>
+            </div>
+          `).join("")
+        : `<div class="empty-state-inline">Nenhuma conta crítica no momento.</div>`;
+    }
+  }
+
+  function renderCustomersToday(sales) {
+    const wrap = document.getElementById("customersTodayList");
+    if (!wrap) return;
+
+    const customerMap = new Map();
+
+    for (const sale of sales) {
+      const name = getSaleCustomerName(sale);
+      if (!name) continue;
+
+      const snap = getSaleCustomerSnapshot(sale);
+const phone = getSaleCustomerPhone(sale);
+const total = getSaleTotal(sale);
+
+const key =
+  String(snap?.id || "").trim() ||
+  String(snap?.doc || "").trim() ||
+  String(phone || "").trim() ||
+  name.toLowerCase();
+
+      if (!customerMap.has(key)) {
+        customerMap.set(key, {
+          name,
+          phone,
+          purchases: 0,
+          total: 0
+        });
+      }
+
+      const ref = customerMap.get(key);
+      ref.purchases += 1;
+      ref.total += total;
+    }
+
+    const customers = Array.from(customerMap.values()).sort((a, b) => b.total - a.total);
+
+    if (!customers.length) {
+      wrap.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-title">Nenhum cliente encontrado hoje</div>
+          <div class="empty-state-text">Assim que houver vendas com cliente vinculado, eles aparecem aqui.</div>
         </div>
       `;
       return;
     }
 
-    function section(title, list, kind){
-  if (!list.length) return "";
+    wrap.innerHTML = customers
+  .map((customer) => `
+    <div class="customer-row customer-row--stacked">
+      <div class="customer-main">
+        <div class="customer-name">${customer.name}</div>
+        <div class="customer-meta">${customer.phone || "Sem telefone informado"}</div>
+      </div>
 
-  const badgeClass = kind === "danger" ? "danger" : (kind === "warn" ? "warn" : "ok");
-  const badgeText =
-    kind === "danger" ? "ZERADO" :
-    kind === "warn" ? "ABAIXO" :
-    "PERTO";
-
-  return `
-    <div style="margin-bottom:14px;">
-      <div style="font-weight:950;margin:10px 0 8px;">${title} (${list.length})</div>
-
-      <div class="notify-mini" style="max-height:none; overflow:visible; padding:0; margin:0;">
-        ${list.map(p => {
-          const stock = Number(p.stockOnHand || 0);
-          const min = Number(p.stockMin || 0);
-          const img = p.imageData ? `<img src="${p.imageData}" alt="">` : `IMG`;
-
-          return `
-            <div class="notify-item" style="margin-right:0;">
-              <div class="notify-thumb">${img}</div>
-              <div class="notify-main">
-                <div class="notify-name">${p.name || "—"}</div>
-                <div class="notify-meta">SKU: <b>${p.sku || "—"}</b> • Estoque: <b>${stock}</b> • Min: <b>${min}</b></div>
-              </div>
-              <div class="notify-badge">
-                <span class="pill ${badgeClass}">${badgeText}</span>
-              </div>
-            </div>
-          `;
-        }).join("")}
+      <div class="customer-side">
+        <div class="customer-count">${customer.purchases} compra(s)</div>
+        <div class="customer-total">${moneyBR(customer.total)}</div>
       </div>
     </div>
-  `;
-}
-
-
-    notifyModalBody.innerHTML =
-      section("Zerado", zero, "danger") +
-      section("Abaixo do mínimo", below, "warn") +
-      section("Perto do mínimo", near, "ok") +
-      `<div class="muted small">As notificações somem automaticamente ao repor o estoque ou marcar o produto como inativo.</div>`;
+  `)
+  .join("");
   }
 
-  if (notifyPreview){
-    notifyPreview.addEventListener("click", openNotifyModal);
+  async function renderHome() {
+    renderDateBadge();
+
+    const sales = await loadTodaySalesSafe();
+
+    await renderTopKpis(sales);
+await renderProductsChart(sales);
+renderCustomersToday(sales);
+await renderStockAlerts();
+await renderPayablesAlerts();
   }
-  if (btnNotifyClose){
-    btnNotifyClose.addEventListener("click", closeNotifyModal);
-  }
-  if (notifyModal){
-    notifyModal.addEventListener("click", (e) => { if (e.target === notifyModal) closeNotifyModal(); });
-  }
-  document.addEventListener("keydown", (e) => {
-    if (notifyModal && !notifyModal.classList.contains("hidden") && e.key === "Escape") closeNotifyModal();
+
+  renderHome().catch((err) => {
+    console.error("[HOME] Erro ao renderizar painel do dia:", err);
   });
 
-  renderNotifications();
+  function rerenderHome() {
+    renderHome().catch((err) => {
+      console.error("[HOME] Erro ao atualizar painel do dia:", err);
+    });
+  }
 
-  
+  window.CoreBus?.on?.("stock:changed", rerenderHome);
+  window.CoreBus?.on?.("cash:changed", rerenderHome);
+  window.CoreBus?.on?.("sale:created", rerenderHome);
+  window.CoreBus?.on?.("sale:finished", rerenderHome);
+  window.CoreBus?.on?.("contas_pagar:changed", rerenderHome);
+  window.CoreBus?.on?.("finance:changed", rerenderHome);
 };
-

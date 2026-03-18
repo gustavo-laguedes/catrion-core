@@ -3,74 +3,99 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CORE POS</title>
+  <title>Catrion Core</title>
 
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/core-favicon.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/core-favicon.png">
 
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <header class="topbar">
-  <div class="topbar-left">
-  <button class="topbar-logo-btn" data-go-home type="button" aria-label="Ir para o início">
-  <img src="assets/logo-topbar.png" class="topbar-logo-left" alt="Clube do Suplemento">
-</button>
+  <div class="core-shell">
+
+    <!-- SIDEBAR -->
+    <aside class="core-sidebar">
+      <div class="sidebar-brand">
+        <img src="assets/core-topbar1.png" class="sidebar-brand-logo" alt="CORE">
+      </div>
+
+      <nav class="sidebar-nav">
+  <button class="sidebar-link active" type="button" data-route="home">
+    <span class="sidebar-ico">📈</span>
+    <span>Dashboard</span>
+  </button>
+
+  <button class="sidebar-link" type="button" data-route="venda">
+    <span class="sidebar-ico">🛒</span>
+    <span>Vendas</span>
+  </button>
+
+  <button class="sidebar-link" type="button" data-route="produtos">
+    <span class="sidebar-ico">📦</span>
+    <span>Produtos</span>
+  </button>
+
+  <button class="sidebar-link" type="button" data-route="caixa">
+    <span class="sidebar-ico">💵</span>
+    <span>Caixa</span>
+  </button>
+
+  <button class="sidebar-link" type="button" data-route="relatorios">
+    <span class="sidebar-ico">📊</span>
+    <span>Relatórios</span>
+  </button>
+</nav>
+
+<div class="sidebar-secondary">
+  <button class="sidebar-link sidebar-link-secondary" type="button" onclick="openAdminAuth()">
+    <span class="sidebar-ico">⚙️</span>
+    <span>Configurações</span>
+  </button>
 </div>
 
-  <div class="topbar-center">
+<div class="sidebar-footer">
+  <div class="sidebar-footer-text">Developed by Catrion</div>
+
+  <img
+    src="assets/catrion-lowbar.png"
+    alt="Catrion"
+    class="sidebar-footer-logo"
+  />
+
+  <div class="sidebar-footer-sub">version: 240126 - v0</div>
+</div>
+    </aside>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <div class="core-main-area">
+      <header class="topbar">
+
+        <div class="topbar-center">
   <button class="topbar-logo-btn" data-go-home type="button" aria-label="Ir para o início">
-  <img src="assets/core-topbar1.png" class="topbar-logo-center" alt="CORE">
-</button>
+    <img src="assets/logo-topbar.png" class="topbar-logo-store" alt="Clube do Suplemento">
+  </button>
 </div>
 
-  <div class="topbar-right">
-    <span id="userHello" class="hello">Olá!</span>
-    <button
-  class="topbar-icon home-btn"
-  data-go-home
-  title="Ir para a Home"
-  aria-label="Ir para a Home"
-  type="button"
->
-  <svg
-  class="ico-home"
-  width="18"
-  height="18"
-  viewBox="0 0 24 24"
-  fill="none"
-  stroke="currentColor"
-  stroke-width="2.2"
-  stroke-linecap="round"
-  stroke-linejoin="round"
->
-  <!-- telhado -->
-  <path d="M4 10.5L12 4l8 6.5" />
-  <!-- corpo -->
-  <path d="M6.5 10.5V20h11V10.5" />
-  <!-- porta -->
-  <path d="M10 20v-6h4v6" />
-</svg>
+                        <div class="topbar-right">
+          <span id="userHello" class="hello">Olá!</span>
 
+          <button class="topbar-icon chat-btn" id="btnChat" title="Mensagens" aria-label="Mensagens">
+            💬
+            <span id="chatUnreadBadge" class="chat-badge hidden" aria-label="Mensagens não lidas"></span>
+          </button>
 
-</button>
+          <div class="divider"></div>
 
-
-    <button class="topbar-icon chat-btn" id="btnChat" title="Mensagens" aria-label="Mensagens">
-  💬
-  <span id="chatUnreadBadge" class="chat-badge hidden" aria-label="Mensagens não lidas"></span>
-</button>
-
-    <div class="divider"></div>
-    <button class="topbar-icon" title="Configurações" aria-label="Configurações" onclick="openAdminAuth()">⚙️</button>
-    <button class="topbar-icon" id="btnLogout" title="Sair" aria-label="Sair">
+<button class="topbar-icon" id="btnLogout" title="Sair" aria-label="Sair">
   <span class="icon-power">⏻</span>
 </button>
+        </div>
+      </header>
 
+      <main id="app"></main>
+    </div>
   </div>
-</header>
-  
-
-  <main id="app"></main>
 
   <!-- ordem recomendada -->
   <script src="shared/router.js"></script>
@@ -83,12 +108,6 @@
 
    <!-- ✅ novo: Impressão global (para Venda + Caixa + Relatórios) -->
   <script src="shared/receipt.js"></script>
-
-  <script type="module">
-  import { CoreStorage } from "./core/data/storage.js";
-  window.CoreStorage = CoreStorage;
-</script>
-
 
   <script src="shared/productsRepo.js"></script>
 
@@ -134,32 +153,9 @@
     </div>
 
     <div class="config-tabs">
-  <button class="tab active" data-tab="users" onclick="switchConfigTab('users')">Usuários</button>
-  <button class="tab" data-tab="machines" onclick="switchConfigTab('machines')">Maquininhas</button>
+  <button class="tab active" data-tab="machines" onclick="switchConfigTab('machines')">Maquininhas</button>
 </div>
 
-
-<!-- USUÁRIOS -->
-<div id="usersSection">
-
-  <button id="btnNewUser" class="btn-add">+ Novo usuário</button>
-
-  <div id="userForm" class="hidden form-box">
-    <input id="userName" placeholder="Nome do usuário">
-    
-    <select id="userRole">
-      <option value="FUNC">Funcionário</option>
-      <option value="ADMIN">Administrador</option>
-    </select>
-
-    <input id="userPass" type="password" placeholder="Senha">
-    
-    <button id="saveUser" class="btn-save">Salvar</button>
-  </div>
-
-  <div id="userList" class="list-box"></div>
-
-</div>
 
 <!-- MAQUININHAS -->
 <div id="machinesSection" class="hidden">
@@ -170,20 +166,110 @@
     <input id="machineName" placeholder="Nome da maquininha">
 
     <div class="grid-rates">
-      <input placeholder="Débito (%)" data-rate="debito">
-      <input placeholder="Crédito 1x (%)" data-rate="1">
-      <input placeholder="Crédito 2x (%)" data-rate="2">
-      <input placeholder="Crédito 3x (%)" data-rate="3">
-      <input placeholder="Crédito 4x (%)" data-rate="4">
-      <input placeholder="Crédito 5x (%)" data-rate="5">
-      <input placeholder="Crédito 6x (%)" data-rate="6">
-      <input placeholder="Crédito 7x (%)" data-rate="7">
-      <input placeholder="Crédito 8x (%)" data-rate="8">
-      <input placeholder="Crédito 9x (%)" data-rate="9">
-      <input placeholder="Crédito 10x (%)" data-rate="10">
-      <input placeholder="Crédito 11x (%)" data-rate="11">
-      <input placeholder="Crédito 12x (%)" data-rate="12">
-    </div>
+  <div class="rate-field">
+    <label class="rate-toggle">
+      <input type="checkbox" data-rate-enabled="debito" checked>
+      <span>Habilitado</span>
+    </label>
+    <input placeholder="Débito (%)" data-rate="debito">
+  </div>
+
+  <div class="rate-field">
+    <label class="rate-toggle">
+      <input type="checkbox" data-rate-enabled="1" checked>
+      <span>Habilitado</span>
+    </label>
+    <input placeholder="Crédito 1x (%)" data-rate="1">
+  </div>
+
+  <div class="rate-field">
+    <label class="rate-toggle">
+      <input type="checkbox" data-rate-enabled="2" checked>
+      <span>Habilitado</span>
+    </label>
+    <input placeholder="Crédito 2x (%)" data-rate="2">
+  </div>
+
+  <div class="rate-field">
+    <label class="rate-toggle">
+      <input type="checkbox" data-rate-enabled="3" checked>
+      <span>Habilitado</span>
+    </label>
+    <input placeholder="Crédito 3x (%)" data-rate="3">
+  </div>
+
+  <div class="rate-field">
+    <label class="rate-toggle">
+      <input type="checkbox" data-rate-enabled="4" checked>
+      <span>Habilitado</span>
+    </label>
+    <input placeholder="Crédito 4x (%)" data-rate="4">
+  </div>
+
+  <div class="rate-field">
+    <label class="rate-toggle">
+      <input type="checkbox" data-rate-enabled="5" checked>
+      <span>Habilitado</span>
+    </label>
+    <input placeholder="Crédito 5x (%)" data-rate="5">
+  </div>
+
+  <div class="rate-field">
+    <label class="rate-toggle">
+      <input type="checkbox" data-rate-enabled="6" checked>
+      <span>Habilitado</span>
+    </label>
+    <input placeholder="Crédito 6x (%)" data-rate="6">
+  </div>
+
+  <div class="rate-field">
+    <label class="rate-toggle">
+      <input type="checkbox" data-rate-enabled="7" checked>
+      <span>Habilitado</span>
+    </label>
+    <input placeholder="Crédito 7x (%)" data-rate="7">
+  </div>
+
+  <div class="rate-field">
+    <label class="rate-toggle">
+      <input type="checkbox" data-rate-enabled="8" checked>
+      <span>Habilitado</span>
+    </label>
+    <input placeholder="Crédito 8x (%)" data-rate="8">
+  </div>
+
+  <div class="rate-field">
+    <label class="rate-toggle">
+      <input type="checkbox" data-rate-enabled="9" checked>
+      <span>Habilitado</span>
+    </label>
+    <input placeholder="Crédito 9x (%)" data-rate="9">
+  </div>
+
+  <div class="rate-field">
+    <label class="rate-toggle">
+      <input type="checkbox" data-rate-enabled="10" checked>
+      <span>Habilitado</span>
+    </label>
+    <input placeholder="Crédito 10x (%)" data-rate="10">
+  </div>
+
+  <div class="rate-field">
+    <label class="rate-toggle">
+      <input type="checkbox" data-rate-enabled="11" checked>
+      <span>Habilitado</span>
+    </label>
+    <input placeholder="Crédito 11x (%)" data-rate="11">
+  </div>
+
+  <div class="rate-field">
+    <label class="rate-toggle">
+      <input type="checkbox" data-rate-enabled="12" checked>
+      <span>Habilitado</span>
+    </label>
+    <input placeholder="Crédito 12x (%)" data-rate="12">
+  </div>
+</div>
 
     <button id="saveMachine" class="btn-save">Salvar</button>
   </div>
@@ -258,22 +344,19 @@
 </div>
 
 
-  
+  <script src="shared/env.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="shared/supabaseClient.js"></script>
+  <script src="shared/tenant.js"></script>
+  <script src="shared/tenantContext.js"></script>
+  <script src="shared/store/cash.js"></script> 
+  <script src="CoreCash.js"></script>  
+  <script src="shared/money.js"></script>
+  <script src="shared/store/products.js"></script>
+  <script src="shared/store/stock.js"></script>
+  <script src="shared/store/sales.js"></script>
+  <script src="pages/relatorios/relatorios.js?v=20260304_01"></script>
   <script src="app.js"></script>
-
-<footer class="lowbar">
-  <div class="lowbar-content">
-    <div class="lowbar-text">Developed by Catrion</div>
-
-    <img
-      src="assets/catrion-lowbar.png"
-      alt="Catrion"
-      class="lowbar-logo"
-    />
-
-    <div class="lowbar-version">version: 240126 - v0</div>
-  </div>
-</footer>
 
 
 </body>

@@ -1,74 +1,148 @@
 /* =========================
-   CAIXA — Layout padrão CORE
-   (container branco sólido + cards internos claros)
+   CAIXA — padrão visual CORE
+   sem bloco mãe / sem scroll interno
    ========================= */
 
+:root{
+  --cx-text: #0f172a;
+  --cx-sub: #64748b;
+  --cx-line: rgba(15,23,42,.08);
+  --cx-line-soft: rgba(15,23,42,.06);
+  --cx-white: rgba(255,255,255,.82);
+  --cx-white-2: rgba(255,255,255,.70);
+  --cx-head: rgba(15,23,42,.035);
+}
+
+/* não trava o body */
+body.cash-scroll-lock{
+  overflow: auto;
+}
+
+/* wrappers neutros */
 .page-container{
-  max-width: 1280px;
-  margin: 20px auto;
-  padding: 24px;
-  border-radius: 22px;
-
-  background: #ffffff;
-  background-image: none !important;
-
-  box-shadow:
-    0 10px 25px rgba(0, 0, 0, 0.10),
-    0 4px 10px rgba(0, 0, 0, 0.06);
-
-  overflow: hidden; /* garante que nada “vaze” na borda arredondada */
-}
-
-.caixa-page{
+  max-width: none;
+  margin: 0;
   padding: 0;
-  min-height: 520px; /* dá presença visual parecida com Produtos */
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+  position: static;
+  z-index: auto;
+  isolation: auto;
 }
 
+.page-scroll{
+  height: auto;
+  overflow: visible;
+  padding: 0;
+}
+
+.page-scroll::-webkit-scrollbar-button{
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* página */
+.caixa-page{
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 6px 6px 24px 2px;
+  min-height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: var(--cx-text);
+}
+
+/* header */
 .caixa-header{
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 16px;
+  margin-bottom: 0;
 }
 
 .caixa-header h1{
   margin: 0;
-  font-size: 22px;
-  font-weight: 800;
+  font-size: 36px;
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -.8px;
+  color: var(--cx-text);
 }
 
 .muted{
-  opacity: .75;
-  margin: 4px 0 0;
+  opacity: 1;
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--cx-sub);
 }
 
 .muted.small{
   font-size: 12px;
   margin-top: 10px;
+  font-weight: 600;
+  color: var(--cx-sub);
 }
 
-/* ações no topo */
+/* ações topo */
 .caixa-actions{
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
 }
 
-/* grid */
+/* botões */
+.btn{
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(15,23,42,.10);
+  background: rgba(255,255,255,.82);
+  box-shadow: 0 1px 0 rgba(0,0,0,.04);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.btn.primary{
+  background: linear-gradient(180deg, rgba(20,90,255,.13), rgba(20,90,255,.09));
+  border-color: rgba(20,90,255,.20);
+  font-weight: 800;
+}
+
+.btn.danger{
+  background: rgba(255,80,80,.10);
+  border-color: rgba(255,80,80,.26);
+}
+
+.btn.icon{
+  padding: 0 12px;
+  width: 40px;
+  height: 40px;
+}
+
+/* grid principal */
 .caixa-grid{
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
-/* cards internos (não usar .card pra não brigar com outras páginas) */
+/* cards */
 .cash-card{
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
+  background: var(--cx-white);
+  border: 1px solid var(--cx-line);
+  border-radius: 20px;
   padding: 14px;
+  box-shadow: 0 14px 28px rgba(15,23,42,.05);
 }
 
 .cash-card.full{
@@ -76,7 +150,9 @@
 }
 
 .cash-card-title{
-  font-weight: 800;
+  font-weight: 900;
+  font-size: 16px;
+  color: var(--cx-text);
   margin-bottom: 10px;
 }
 
@@ -85,30 +161,32 @@
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .status-pill{
-  padding: 6px 10px;
+  padding: 6px 12px;
   border-radius: 999px;
-  border: 1px solid #e5e7eb;
-  font-weight: 800;
+  border: 1px solid rgba(15,23,42,.10);
+  font-weight: 900;
   font-size: 12px;
-  background: #ffffff;
+  background: rgba(255,255,255,.90);
+  color: var(--cx-text);
 }
 
 .status-pill.open{
-  background: rgba(34, 197, 94, 0.14);
-  border-color: rgba(34, 197, 94, 0.30);
+  background: rgba(34,197,94,.14);
+  border-color: rgba(34,197,94,.30);
 }
 
 .status-pill.closed{
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.26);
+  background: rgba(239,68,68,.12);
+  border-color: rgba(239,68,68,.26);
 }
 
 .status-meta{
   font-size: 12px;
-  opacity: .8;
+  color: var(--cx-sub);
 }
 
 /* KPIs */
@@ -120,49 +198,106 @@
 }
 
 .kpi{
-  padding: 10px;
-  border-radius: 14px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--cx-line);
+  background: rgba(255,255,255,.86);
 }
 
 .kpi-label{
   font-size: 12px;
-  opacity: .8;
+  color: var(--cx-sub);
 }
 
 .kpi-value{
   font-size: 16px;
   font-weight: 900;
   margin-top: 4px;
+  color: var(--cx-text);
 }
 
 /* resumo por pagamento */
 .pay-grid{
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
 }
 
 .pay-item{
-  padding: 10px;
-  border-radius: 14px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--cx-line);
+  background: rgba(255,255,255,.86);
 }
 
 .pay-label{
   font-size: 12px;
-  opacity: .8;
+  color: var(--cx-sub);
 }
 
 .pay-value{
   font-size: 16px;
   font-weight: 900;
   margin-top: 4px;
+  color: var(--cx-text);
+}
+
+/* lucro */
+.profit-row{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.profit-main{
+  display: grid;
+  gap: 6px;
+}
+
+.profit-value{
+  font-size: 22px;
+  font-weight: 950;
+  color: var(--cx-text);
+}
+
+.profit-pill{
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--cx-line);
+  background: rgba(255,255,255,.90);
+  font-weight: 900;
+  min-width: 80px;
+  text-align: center;
+  color: var(--cx-text);
 }
 
 /* eventos */
+.events-head{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.events-tools{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.events-date{
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 14px;
+  border: 1px solid var(--cx-line);
+  background: rgba(255,255,255,.86);
+  font-weight: 800;
+  color: var(--cx-text);
+}
+
 .events-list{
   display: flex;
   flex-direction: column;
@@ -173,58 +308,55 @@
   display: grid;
   grid-template-columns: 120px 1fr 120px auto;
   gap: 10px;
-  padding: 10px;
-
-  border-radius: 14px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid var(--cx-line);
+  background: rgba(255,255,255,.86);
   align-items: center;
 }
 
 .event-type{
-  display:flex;
-  align-items:center;
-  gap:8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 900;
   font-size: 12px;
-  opacity: .9;
+  color: var(--cx-text);
 }
-
 
 .event-desc{
   font-size: 13px;
-  opacity: .95;
+  color: var(--cx-text);
 }
 
 .event-amt{
   text-align: right;
   font-weight: 900;
+  color: var(--cx-text);
 }
 
-/* botões (mantém o padrão “clean”) */
-.btn{
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+.event-actions{
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.event-btn{
+  border: 1px solid var(--cx-line);
+  background: rgba(255,255,255,.92);
+  border-radius: 10px;
+  padding: 6px 8px;
   cursor: pointer;
+  font-weight: 900;
 }
 
-.btn.primary{
-  background: rgba(59, 130, 246, 0.14);
-  border-color: rgba(59, 130, 246, 0.26);
+.event-btn.danger{
+  border-color: rgba(239,68,68,.26);
+  background: rgba(239,68,68,.10);
+  color: #b91c1c;
 }
 
-.btn.danger{
-  background: rgba(239, 68, 68, 0.12);
-  border-color: rgba(239, 68, 68, 0.26);
-}
-
-.btn.icon{
-  padding: 8px 10px;
-}
-
-/* modal */
+/* modais */
 .core-modal-backdrop{
   position: fixed;
   inset: 0;
@@ -241,10 +373,15 @@
 
 .core-modal{
   width: min(520px, calc(100% - 24px));
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
+  background: rgba(255,255,255,.96);
+  border: 1px solid var(--cx-line);
+  border-radius: 18px;
   padding: 14px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.18);
+}
+
+.core-modal.sale-view{
+  width: min(820px, calc(100% - 24px));
 }
 
 .core-modal-head{
@@ -256,6 +393,7 @@
 
 .core-modal-title{
   font-weight: 900;
+  color: var(--cx-text);
 }
 
 .core-modal-body .field{
@@ -267,14 +405,14 @@
 
 .core-modal-body .field span{
   font-size: 12px;
-  opacity: .8;
+  color: var(--cx-sub);
 }
 
 .core-modal-body .field input{
   padding: 10px 12px;
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
+  border: 1px solid var(--cx-line);
+  background: rgba(255,255,255,.92);
   color: #111827;
 }
 
@@ -285,186 +423,136 @@
   margin-top: 12px;
 }
 
-/* responsivo */
-@media (max-width: 860px){
-  .caixa-grid{ grid-template-columns: 1fr; }
-  .status-kpis, .pay-grid{ grid-template-columns: 1fr; }
-  .event-row{ grid-template-columns: 110px 1fr 100px; }
-}
-
-/* força a página do Caixa a ficar acima de qualquer overlay do background */
-.page-container,
-.caixa-page {
-  position: relative;
-  z-index: 9999;
-  isolation: isolate;  /* cria um novo contexto de empilhamento */
-}
-
-/* 4 colunas no resumo */
-.pay-grid{
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-}
-
-/* Lucro */
-.profit-row{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.profit-value{
-  font-size: 22px;
-  font-weight: 900;
-}
-
-.profit-pill{
-  padding: 10px 14px;
-  border-radius: 999px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  font-weight: 900;
-  min-width: 80px;
-  text-align: center;
-}
-
-/* responsivo */
-@media (max-width: 860px){
-  .pay-grid{ grid-template-columns: 1fr 1fr; }
-  .profit-row{ flex-direction: column; align-items: flex-start; }
-  .profit-pill{ min-width: auto; }
-}
-
-/* =========================================================
-   CONTROLE ÚNICO DO TAMANHO DO BLOCO (VERMELHO → VERDE)
-   ========================================================= */
-
-/* trava scroll do body (só enquanto estiver na página Caixa) */
-body.cash-scroll-lock{ overflow: hidden; }
-
-/* o bloco branco não rola */
-.page-container{
-  max-width: 1280px;
-  margin: 20px auto;
-  border-radius: 22px;
-  background: #fff;
-  box-shadow:
-    0 10px 25px rgba(0, 0, 0, 0.10),
-    0 4px 10px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-}
-
-/* ✅ quem rola é só o conteúdo interno — e aqui ajusta a ALTURA */
-.page-scroll{
-  /* quanto MAIOR esse número final, mais “curto” fica o bloco (mais perto do verde) */
-  height: calc(100vh - 92px - 100px);
-  overflow: auto;
-
-  padding: 24px;
-  padding-bottom: 32px; /* mantém seu ajuste do “respiro” entre eventos e fundo */
-}
-
-/* remove setinhas (Chrome/Edge) */
-.page-scroll::-webkit-scrollbar-button{
-  display: none;
-  width: 0;
-  height: 0;
-}
-
-
-.events-head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  margin-bottom: 10px;
-}
-
-/* botão de ação por evento */
-.event-actions{
-  display:flex;
-  justify-content:flex-end;
-  gap:8px;
-}
-
-.event-btn{
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  border-radius: 10px;
-  padding: 6px 8px;
-  cursor: pointer;
-  font-weight: 900;
-}
-
-.event-btn.danger{
-  border-color: rgba(239,68,68,.26);
-  background: rgba(239,68,68,.10);
-  color: #b91c1c;
-}
-
-/* modal de detalhes mais largo */
-.core-modal.sale-view{
-  width: min(820px, calc(100% - 24px));
-}
-
+/* modal detalhes venda */
 .sale-detail-grid{
-  display:grid;
+  display: grid;
   grid-template-columns: 1fr 1fr;
-  gap:12px;
+  gap: 12px;
   margin-bottom: 12px;
 }
 
 .sale-box{
-  border:1px solid #e5e7eb;
-  background:#ffffff;
-  border-radius: 14px;
+  border: 1px solid var(--cx-line);
+  background: rgba(255,255,255,.92);
+  border-radius: 16px;
   padding: 12px;
 }
 
 .sale-items{
-  border:1px solid #e5e7eb;
-  background:#ffffff;
-  border-radius: 14px;
+  border: 1px solid var(--cx-line);
+  background: rgba(255,255,255,.92);
+  border-radius: 16px;
   padding: 12px;
 }
 
 .sale-item-row{
-  display:grid;
+  display: grid;
   grid-template-columns: 42px 1fr 90px 90px;
-  gap:10px;
-  align-items:center;
+  gap: 10px;
+  align-items: center;
   padding: 8px 0;
-  border-top:1px solid #f1f5f9;
+  border-top: 1px solid #f1f5f9;
 }
-.sale-item-row:first-child{ border-top:none; }
+
+.sale-item-row:first-child{
+  border-top: none;
+}
 
 .sale-item-img img{
   width: 42px;
   height: 42px;
   border-radius: 10px;
   object-fit: cover;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--cx-line);
 }
 
+/* responsivo */
 @media (max-width: 860px){
-  .sale-detail-grid{ grid-template-columns: 1fr; }
-  .sale-item-row{ grid-template-columns: 42px 1fr; }
+  .caixa-grid{
+    grid-template-columns: 1fr;
+  }
+
+  .status-kpis,
+  .pay-grid{
+    grid-template-columns: 1fr;
+  }
+
+  .profit-row{
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profit-pill{
+    min-width: auto;
+  }
+
+  .event-row{
+    grid-template-columns: 110px 1fr 100px;
+  }
+
+  .caixa-header{
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .caixa-actions{
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .sale-detail-grid{
+    grid-template-columns: 1fr;
+  }
+
+  .sale-item-row{
+    grid-template-columns: 42px 1fr;
+  }
+
+  #dlgMove .mv-row{
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #dlgMove .mv-grid2{
+    grid-template-columns: 1fr;
+  }
+
+  #dlgMove .mv-items-head,
+  #dlgMove .mv-item{
+    grid-template-columns: 1fr 70px 120px 44px;
+  }
 }
 
-.events-tools{
-  display:flex;
-  align-items:center;
-  gap:10px;
+.admin-warning{
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(239,68,68,.22);
+  background: rgba(239,68,68,.08);
+  display: grid;
+  gap: 12px;
 }
 
-.events-date{
-  height: 36px;
-  padding: 0 10px;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  font-weight: 900;
-  color:#0f172a;
+.admin-warning.hidden{
+  display: none;
+}
+
+.admin-warning-title{
+  font-size: 16px;
+  font-weight: 950;
+  color: #991b1b;
+}
+
+.admin-warning-text{
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 800;
+  color: #7f1d1d;
+}
+
+.admin-warning-actions{
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 4px;
 }

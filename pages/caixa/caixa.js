@@ -73,6 +73,13 @@ const $btnEventsToday = el("btnEventsToday");
   const $adminCancel = el("adminCancel");
   const $adminConfirm = el("adminConfirm");
 
+  const $adminHint = el("adminHint");
+
+  const $adminWarningBox = el("adminWarningBox");
+const $adminAware = el("adminAware");
+const $adminDismiss = el("adminDismiss");
+const $adminPasswordActions = el("adminPasswordActions");
+
   // sale view modal
   const $saleViewBackdrop = el("saleViewBackdrop");
   const $saleViewClose = el("saleViewClose");
@@ -83,7 +90,7 @@ const $btnEventsToday = el("btnEventsToday");
   const $saleViewTitle = el("saleViewTitle");
 
   let adminMode = false;
-  const ADMIN_PASSWORD = "1234"; // ✅ senha do admin
+  const ADMIN_PASSWORD = "adminconfig00"; // ✅ senha do admin
 
   const moneyOrMask = (v) =>
   isFunc
@@ -95,14 +102,28 @@ const $btnEventsToday = el("btnEventsToday");
 
 
   function openAdminModal() {
-    $adminPass.value = "";
-    $adminBackdrop.classList.remove("hidden");
-    setTimeout(() => $adminPass.focus(), 50);
-  }
+  $adminPass.value = "";
+  resetAdminWarningState();
+  $adminBackdrop.classList.remove("hidden");
+  setTimeout(() => $adminPass.focus(), 50);
+}
 
-  function closeAdminModal() {
-    $adminBackdrop.classList.add("hidden");
-  }
+ function closeAdminModal() {
+  resetAdminWarningState();
+  $adminBackdrop.classList.add("hidden");
+}
+
+  function resetAdminWarningState() {
+  if ($adminWarningBox) $adminWarningBox.classList.add("hidden");
+  if ($adminPasswordActions) $adminPasswordActions.classList.remove("hidden");
+  if ($adminHint) $adminHint.classList.remove("hidden");
+}
+
+function showAdminWarning() {
+  if ($adminWarningBox) $adminWarningBox.classList.remove("hidden");
+  if ($adminPasswordActions) $adminPasswordActions.classList.add("hidden");
+  if ($adminHint) $adminHint.classList.add("hidden");
+}
 
   function moneyBR(v) {
     const n = Number(v || 0);
@@ -721,6 +742,14 @@ $eventsDate?.addEventListener("change", () => {
     $backdrop.addEventListener("click", (e) => { if (e.target === $backdrop) closeModal(); });
     $mConfirm.addEventListener("click", confirmModal);
 
+    $adminAware?.addEventListener("click", () => {
+  confirmAdminAccess();
+});
+
+$adminDismiss?.addEventListener("click", () => {
+  closeAdminModal();
+});
+
     $btnEventsEdit.addEventListener("click", () => {
       if (adminMode) {
         adminMode = false;
@@ -734,30 +763,35 @@ $eventsDate?.addEventListener("change", () => {
     $adminCancel.addEventListener("click", closeAdminModal);
     $adminBackdrop.addEventListener("click", (e) => { if (e.target === $adminBackdrop) closeAdminModal(); });
 
-    $adminConfirm.addEventListener("click", () => {
+    function confirmAdminAccess() {
+  const btnEdit = document.getElementById("btnEditCashValue");
+  const target = btnEdit?.dataset.unlockTarget;
+
+  // destravar edição de valor no modal de abertura/fechamento
+  if (target === "cashValue") {
+    delete btnEdit.dataset.unlockTarget;
+    $mValue.disabled = false;
+    modalValueLocked = false;
+    closeAdminModal();
+    $mValue.focus();
+    return;
+  }
+
+  // modo admin global
+  adminMode = true;
+  closeAdminModal();
+  render();
+}
+
+$adminConfirm.addEventListener("click", () => {
   const pass = ($adminPass.value || "").trim();
+
   if (pass !== ADMIN_PASSWORD) {
     alert("Senha incorreta.");
     return;
   }
 
-  const btnEdit = document.getElementById("btnEditCashValue");
-  const target = btnEdit?.dataset.unlockTarget;
-
-  // 🔓 Caso especial: destravar valor do modal OPEN
-  if (target === "cashValue") {
-    delete btnEdit.dataset.unlockTarget; // 🔥 limpa o alvo
-    $mValue.disabled = false;
-    modalValueLocked = false;
-    closeAdminModal();
-    $mValue.focus();
-    return; // ⛔ NÃO entra em adminMode, NÃO renderiza
-  }
-
-  // 🛠️ Caso normal: modo admin global (lixeiras)
-  adminMode = true;
-  closeAdminModal();
-  render();
+  showAdminWarning();
 });
 
 

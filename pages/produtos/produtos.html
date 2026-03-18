@@ -1,57 +1,55 @@
-<!-- pages/produtos/produtos.html -->
 <section class="products-page">
-  <div class="products-shell">
 
-    <header class="products-header">
-      <div class="left">
-        <h1>Produtos</h1>
-        <p class="muted">Cadastro, edição e movimentação de estoque</p>
-      </div>
-
-      <div class="right">
-        <button class="btn" id="btnNewProduct">+ Novo produto</button>
-        <button class="btn secondary" id="btnNewMovement">Movimentar estoque</button>
-      </div>
-    </header>
-
-    <div class="products-toolbar">
-      <input id="inpSearch" class="inp" placeholder="Buscar por nome ou SKU..." />
-      <select id="selStatus" class="inp">
-        <option value="all">Todos</option>
-        <option value="active">Ativos</option>
-        <option value="inactive">Inativos</option>
-      </select>
-      <select id="selStock" class="inp">
-        <option value="all">Estoque: todos</option>
-        <option value="low">Somente baixo</option>
-        <option value="zero">Somente zerado</option>
-      </select>
+  <header class="products-header">
+    <div class="left">
+      <h1>Produtos</h1>
+      <p class="muted">Cadastro, edição e movimentação de estoque</p>
     </div>
 
-    <div class="products-table-wrap">
-      <table class="products-table" id="tblProducts">
-        <thead>
-          <tr>
-  <th class="thumb-col">Foto</th>
-  <th data-sort="name">Nome</th>
-  <th data-sort="sku">SKU/Código</th>
-  <th data-sort="priceCents">Preço</th>
-  <th data-sort="costCents">Custo</th>
-  <th data-sort="profitPct">Lucro</th>
-  <th data-sort="stockOnHand">Estoque</th>
-    <th data-sort="unit">Unidade</th>
-  <th data-sort="status">Status</th>
-  <th class="actions">Ações</th>
-</tr>
-
-        </thead>
-        <tbody></tbody>
-      </table>
-
-      <div class="empty muted" id="emptyState" hidden>
-        Nenhum produto encontrado.
-      </div>
+    <div class="right">
+      <button class="btn" id="btnNewProduct">+ Novo produto</button>
+      <button class="btn secondary" id="btnNewMovement">Movimentar estoque</button>
     </div>
+  </header>
+
+  <div class="products-toolbar">
+    <input id="inpSearch" class="inp" placeholder="Buscar por nome ou SKU..." />
+    <select id="selStatus" class="inp">
+      <option value="all">Todos</option>
+      <option value="active">Ativos</option>
+      <option value="inactive">Inativos</option>
+    </select>
+    <select id="selStock" class="inp">
+      <option value="all">Estoque: todos</option>
+      <option value="low">Somente baixo</option>
+      <option value="zero">Somente zerado</option>
+    </select>
+  </div>
+
+  <div class="products-table-wrap">
+    <table class="products-table" id="tblProducts">
+      <thead>
+        <tr>
+          <th class="thumb-col">Foto</th>
+          <th data-sort="name">Nome</th>
+          <th data-sort="sku">SKU/Código</th>
+          <th data-sort="priceCents">Preço</th>
+          <th data-sort="costCents">Custo</th>
+          <th data-sort="profitPct">Lucro</th>
+          <th data-sort="stockOnHand">Estoque</th>
+          <th data-sort="unit">Unidade</th>
+          <th data-sort="status">Status</th>
+          <th class="actions" data-sort="actionState">Tomada de decisão</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="empty muted" id="emptyState" hidden>
+      Nenhum produto encontrado.
+    </div>
+  </div>
+
 
     <!-- MODAL: PRODUTO -->
 <dialog class="modal" id="dlgProduct">

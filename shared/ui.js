@@ -3,9 +3,11 @@
   function updateTopbar() {
     const hello = document.getElementById("userHello");
     const btnLogout = document.getElementById("btnLogout");
-    const session = window.CoreAuth.getSession();
 
     if (!hello || !btnLogout) return;
+
+    // ✅ auth novo
+    const session = window.CoreAuth?.getCurrentUser?.() || null;
 
     if (!session) {
       hello.textContent = "Olá!";
@@ -13,13 +15,17 @@
       return;
     }
 
-    hello.textContent = `Olá, ${session.name} (${session.role})`;
+    const label = session.email || "usuário";
+    hello.textContent = `Olá, ${label} (${session.role})`;
     btnLogout.style.display = "inline-flex";
 
-    btnLogout.onclick = () => {
-      window.CoreAudit.log("LOGOUT");
-      window.CoreAuth.logout();
-      location.reload();
+    btnLogout.onclick = async () => {
+      try {
+        window.CoreAudit?.log?.("LOGOUT");
+        await window.CoreAuth.logout(); // ✅ agora é async
+      } finally {
+        location.reload();
+      }
     };
   }
 

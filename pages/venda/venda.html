@@ -1,102 +1,94 @@
 <div class="sale-stage">
 
-  <div class="sale-panel">
-    <!-- Cabeçalho compacto -->
-    <div class="sale-header">
-  <div class="sale-header-left">
-  <div class="sale-title-row">
-    <div class="sale-title">Nova Venda</div>
+  <!-- Cabeçalho compacto -->
+  <div class="sale-header">
+    <div class="sale-header-left">
+      <div class="sale-title-row">
+        <div class="sale-title">Nova Venda</div>
 
-    <!-- pill igual ao Caixa -->
-    <span class="status-pill" id="saleStatusPill">—</span>
-  </div>
-
-  <div class="sale-sub">Digite nome ou leia o <strong>código de barras</strong></div>
-</div>
-
-
-  <!-- Cliente (AGORA NO TOPO, fora do carrinho) -->
-  <div class="customer-picker header" id="customerPicker">
-    <div class="customer-label">Cliente</div>
-
-    <div class="customer-row">
-      <input id="custSearch" class="cust-search" type="text"
-             placeholder="Buscar cliente (nome/telefone/CPF)..."
-             autocomplete="off" />
-
-      <div id="custSelected" class="cust-selected hidden">
-        <span id="custSelectedName">Consumidor Final</span>
+        <span class="status-pill" id="saleStatusPill">—</span>
       </div>
 
-      <!-- ✅ botão cadastrar: boneco + ao lado -->
-      <button id="btnAddCustomer" class="cust-add" title="Cadastrar cliente" type="button">
-        <span class="cust-add-ico">👤</span>
-        <span class="cust-add-plus">+</span>
-      </button>
-
-      <button id="btnClearCustomer" class="cust-clear hidden" title="Remover cliente" type="button">🗑</button>
+      <div class="sale-sub">Digite nome ou leia o <strong>código de barras</strong></div>
     </div>
 
-    <div id="custDropdown" class="cust-dropdown hidden"></div>
+    <!-- Cliente (AGORA NO TOPO, fora do carrinho) -->
+    <div class="customer-picker header" id="customerPicker">
+      <div class="customer-label">Cliente</div>
+
+      <div class="customer-row">
+        <input id="custSearch" class="cust-search" type="text"
+               placeholder="Buscar cliente (nome/telefone/CPF)..."
+               autocomplete="off" />
+
+        <div id="custSelected" class="cust-selected hidden">
+          <span id="custSelectedName">Consumidor Final</span>
+        </div>
+
+        <button id="btnAddCustomer" class="cust-add" title="Cadastrar cliente" type="button">
+          <span class="cust-add-ico">👤</span>
+          <span class="cust-add-plus">+</span>
+        </button>
+
+        <button id="btnClearCustomer" class="cust-clear hidden" title="Remover cliente" type="button">🗑</button>
+      </div>
+
+      <div id="custDropdown" class="cust-dropdown hidden"></div>
+    </div>
   </div>
-</div>
 
+  <div class="sale-grid">
+    <!-- ESQUERDA -->
+    <section class="sale-left">
 
-    <div class="sale-grid">
-      <!-- ESQUERDA -->
-      <section class="sale-left">
+      <!-- Busca -->
+      <div class="search-box">
+        <div class="search-ico">🔎</div>
+        <input id="searchInput" class="search-input" placeholder="Buscar produto ou ler código de barras" autocomplete="off" />
+        <button id="btnScan" class="scan-btn" title="Simular leitura">⌁</button>
+      </div>
 
-        <!-- Busca -->
-        <div class="search-box">
-          <div class="search-ico">🔎</div>
-          <input id="searchInput" class="search-input" placeholder="Buscar produto ou ler código de barras" autocomplete="off" />
-          <button id="btnScan" class="scan-btn" title="Simular leitura">⌁</button>
+      <!-- Resultados (aparecem abaixo da busca) -->
+      <div id="searchResults" class="results"></div>
+
+    </section>
+
+    <!-- DIREITA (Carrinho) -->
+    <aside class="sale-right">
+      <div class="cart-panel">
+        <div class="cart-head">
+          <div class="cart-title">Carrinho</div>
+          <div class="cart-mini"><span id="cartCount">0</span> itens</div>
         </div>
 
-        <!-- Resultados (aparecem abaixo da busca) -->
-        <div id="searchResults" class="results"></div>
+        <div id="cartList" class="cart-list"></div>
 
-      </section>
-
-
-
-      <!-- DIREITA (Carrinho) -->
-      <aside class="sale-right">
-        <div class="cart-panel">
-          <div class="cart-head">
-            <div class="cart-title">Carrinho</div>
-            <div class="cart-mini"><span id="cartCount">0</span> itens</div>
+        <div class="cart-totals">
+          <div class="row">
+            <span>Subtotal</span>
+            <strong id="subtotalValue">R$ 0,00</strong>
           </div>
-
-          <div id="cartList" class="cart-list"></div>
-
-          <div class="cart-totals">
-            <div class="row">
-              <span>Subtotal</span>
-              <strong id="subtotalValue">R$ 0,00</strong>
-            </div>
-            <div class="row muted">
-              <span>Descontos</span>
-              <strong id="discountValue">R$ 0,00</strong>
-            </div>
+          <div class="row muted">
+            <span>Descontos</span>
+            <strong id="discountValue">R$ 0,00</strong>
           </div>
         </div>
-      </aside>
-    </div>
+      </div>
+    </aside>
   </div>
 
 </div>
 
 <!-- Dock fixo (rodapé) -->
 <footer class="sale-dock">
+  <div class="dock-actions">
+    <button id="btnDiscount" class="btn-soft" type="button">Aplicar Desconto</button>
+    <button id="btnCheckout" class="btn-primary" type="button">Finalizar Venda</button>
+  </div>
+
   <div class="dock-total">
     <div class="dock-label">Total</div>
     <div class="dock-value" id="totalValue">R$ 0,00</div>
-  </div>
-
-  <div class="dock-actions">
-    <button id="btnDiscount" class="btn-soft">Aplicar Desconto</button>
-    <button id="btnCheckout" class="btn-primary">Finalizar Venda</button>
   </div>
 </footer>
 

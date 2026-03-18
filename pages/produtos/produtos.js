@@ -3,21 +3,28 @@
   window.CorePageModules = window.CorePageModules || {};
 
   // =========================
-  // Persistência (localStorage)
-  // =========================
-  const KEY_PRODUCTS = "core.products.v1";
-  const KEY_MOVES = "core.stock.movements.v1";
-  const KEY_PURCHASES = "core.stock.purchases.v1";
+// Fonte oficial: Supabase (cache em memória)
+// =========================
+let PRODUCTS_CACHE = []; // lista “viva” da tela
 
+function getProducts(){
+  return Array.isArray(PRODUCTS_CACHE) ? PRODUCTS_CACHE : [];
+}
 
-  function loadProducts() {
-    try { return JSON.parse(localStorage.getItem(KEY_PRODUCTS) || "[]"); }
-    catch { return []; }
-  }
+function setProducts(list){
+  PRODUCTS_CACHE = Array.isArray(list) ? list : [];
+}
 
-  function saveProducts(list) {
-    localStorage.setItem(KEY_PRODUCTS, JSON.stringify(list));
-  }
+// =========================
+// Compat: manter chamadas antigas funcionando (agora em memória)
+// =========================
+function loadProducts(){
+  return getProducts();
+}
+
+function saveProducts(list){
+  setProducts(list);
+}
 
   // =========================
 // Taxonomia do nome (Categoria + Sub1..Sub4)
@@ -283,7 +290,8 @@ items.forEach(v => {
   
 }
 
-
+const KEY_MOVES = "core.stock.movements.v1";
+const KEY_PURCHASES = "core.stock.purchases.v1";
 
   function appendMove(move) {
   let arr = [];
@@ -347,6 +355,60 @@ items.forEach(v => {
     const n = Number(cents || 0) / 100;
     return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   }
+
+  // =========================
+// Máscara de dinheiro (digita e vai pra esquerda) — BRL
+// =========================
+function moneyMaskBRL(inputEl){
+  if (!inputEl) return;
+
+  // evita duplicar listeners
+  if (inputEl.dataset.moneyBound === "1") return;
+  inputEl.dataset.moneyBound = "1";
+
+  function onlyDigits(s){ return String(s || "").replace(/\D/g, ""); }
+
+  function formatDigits(digits){
+    digits = onlyDigits(digits);
+    if (!digits) return "0,00";
+
+    // limita tamanho (evita valores absurdos)
+    digits = digits.slice(0, 12);
+
+    // garante ao menos 3 dígitos pra recortar centavos
+    const padded = digits.padStart(3, "0");
+    const intPart = padded.slice(0, -2);
+    const decPart = padded.slice(-2);
+
+    const intFmt = Number(intPart).toLocaleString("pt-BR");
+    return `${intFmt},${decPart}`;
+  }
+
+  function apply(){
+    const digits = onlyDigits(inputEl.value);
+    inputEl.value = formatDigits(digits);
+
+    // mantém o cursor no fim (simples e eficiente)
+    try{
+      inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
+    }catch{}
+  }
+
+  inputEl.addEventListener("input", apply);
+
+  inputEl.addEventListener("focus", () => {
+    if (!inputEl.value) inputEl.value = "0,00";
+    apply();
+  });
+
+  inputEl.addEventListener("blur", () => {
+    if (!inputEl.value) inputEl.value = "0,00";
+    apply();
+  });
+
+  // inicia formatado
+  apply();
+}
 
   function escapeHtml(str) {
   return String(str ?? "")
@@ -413,6 +475,17 @@ items.forEach(v => {
         if (key === "unit") {
       return String(p.unit || "").toLowerCase();
     }
+
+    if (key === "actionState") {
+  const stock = Number(p.stockOnHand || 0);
+  const min = Number(p.stockMin || 0);
+
+  if (min <= 0) return 3; // sem mínimo configurado
+  if (stock <= 0) return 0; // mais urgente
+  if (stock <= min) return 1;
+  if (stock <= (min + Math.max(1, Math.ceil(min * 0.2)))) return 2;
+  return 3; // acima do mínimo
+}
 
     const v = p[key];
     if (typeof v === "string") return v.toLowerCase();
@@ -501,8 +574,8 @@ const isFunc = (u && typeof u === "object" && u.role === "FUNC");
 
 
     const f = filters || getFilters();
-   let products = loadProducts().slice().map(ensureTaxFields).map(ensureUnitField);
-saveProducts(products); // opcional: grava normalizado (evita bagunça futura)
+   let products = getProducts().slice().map(ensureTaxFields).map(ensureUnitField);
+// NÃO grava em lugar nenhum aqui
 
 
 
@@ -562,27 +635,32 @@ const profitStr = isFunc
   : (profit == null ? "—" : `${profit}%`);
 
 
-      let hint = "Sem mínimo configurado";
-      let hintClass = "ok";
+      let hintTop = "Sem mínimo";
+let hintBottom = "Sem regra";
+let hintClass = "ok";
 
-      if (min > 0) {
-        const buffer = Math.max(1, Math.ceil(min * 0.2));
-        const near = min + buffer;
+if (min > 0) {
+  const buffer = Math.max(1, Math.ceil(min * 0.2));
+  const near = min + buffer;
 
-        if (stock <= 0) {
-          hint = `Zerado • Comprar agora (min ${min})`;
-          hintClass = "danger";
-        } else if (stock <= min) {
-          hint = `No mínimo • Comprar agora (min ${min})`;
-          hintClass = "warn";
-        } else if (stock <= near) {
-          hint = `Perto do mínimo • Planejar compra (min ${min})`;
-          hintClass = "warn";
-        } else {
-          hint = `Acima do mínimo • OK (min ${min})`;
-          hintClass = "ok";
-        }
-      }
+  if (stock <= 0) {
+    hintTop = "Zerado";
+    hintBottom = `Comprar agora • min ${min}`;
+    hintClass = "danger";
+  } else if (stock <= min) {
+    hintTop = "No mínimo";
+    hintBottom = `Comprar agora • min ${min}`;
+    hintClass = "warn";
+  } else if (stock <= near) {
+    hintTop = "Perto do mínimo";
+    hintBottom = `Planejar compra • min ${min}`;
+    hintClass = "warn";
+  } else {
+    hintTop = "Acima do mínimo";
+    hintBottom = `OK • min ${min}`;
+    hintClass = "ok";
+  }
+}
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
@@ -597,10 +675,13 @@ const profitStr = isFunc
         <td>${escapeHtml(p.unit || "UN")}</td>
         <td>${statusPill}</td>
         <td class="actions">
-          <div class="row-actions">
-            <div class="hint ${hintClass}">${hint}</div>
-          </div>
-        </td>
+  <div class="row-actions">
+    <div class="hint ${hintClass}">
+      <span class="hint-top">${hintTop}</span>
+      <span class="hint-bottom">${hintBottom}</span>
+    </div>
+  </div>
+</td>
       `;
       tbody.appendChild(tr);
     }
@@ -681,15 +762,25 @@ const profitStr = isFunc
         if (!ok) return;
 
         const products = loadProducts();
-        saveProducts(products.filter(p => p.id !== id));
-        renderProductsTable(getFilters());
+        (async () => {
+  try {
+    await window.ProductsStore.remove(id);
 
-        const dlgMove = document.querySelector("#dlgMove");
-        if (dlgMove && dlgMove._mv && typeof dlgMove._mv.rebuildProductDatalist === "function") {
-          dlgMove._mv.rebuildProductDatalist();
-        }
+    const products = loadProducts();
+    saveProducts(products.filter(p => p.id !== id));
+    renderProductsTable(getFilters());
 
-        dlg.close();
+    const dlgMove = document.querySelector("#dlgMove");
+    if (dlgMove && dlgMove._mv && typeof dlgMove._mv.rebuildProductDatalist === "function") {
+      dlgMove._mv.rebuildProductDatalist();
+    }
+
+    dlg.close();
+  } catch (e) {
+    console.error("[Produtos] Erro ao excluir no Supabase:", e);
+    alert("Erro ao excluir no banco. Veja o console.");
+  }
+})();
       });
     }
 
@@ -754,20 +845,54 @@ p.sub3 = sub3;
 p.name = genName;   
 
 
-      saveProducts(products);
-      renderProductsTable(getFilters());
+     (async () => {
+  try {
+    const patch = {
+      name: p.name,
+      sku: p.sku,
+      unit: p.unit,
+      priceCents: p.priceCents,
+      costCents: p.costCents,
+      stockOnHand: p.stockOnHand,
+      stockMin: p.stockMin,
+      status: p.status,
+      imageData: p.imageData,
+      cat: p.cat,
+      sub1: p.sub1,
+      sub2: p.sub2,
+      sub3: p.sub3,
+    };
 
-      const dlgMove = document.querySelector("#dlgMove");
-      if (dlgMove && dlgMove._mv && typeof dlgMove._mv.rebuildProductDatalist === "function") {
-        dlgMove._mv.rebuildProductDatalist();
-      }
+    const updated = await window.ProductsStore.update(id, patch);
 
-      setReadOnly(true);
-      dlg.close();
+    const products = loadProducts();
+    const idx = products.findIndex(x => x.id === id);
+    if (idx >= 0) products[idx] = updated;
+    else products.push(updated);
+    saveProducts(products);
+
+    renderProductsTable(getFilters());
+
+    const dlgMove = document.querySelector("#dlgMove");
+    if (dlgMove && dlgMove._mv && typeof dlgMove._mv.rebuildProductDatalist === "function") {
+      dlgMove._mv.rebuildProductDatalist();
+    }
+
+    setReadOnly(true);
+    dlg.close();
+  } catch (e) {
+    console.error("[Produtos] Erro ao atualizar no Supabase:", e);
+    alert("Erro ao salvar alterações no banco. Veja o console.");
+  }
+})();
     });
 
     dlg.addEventListener("close", () => setReadOnly(true));
     setReadOnly(true);
+
+  // máscara BRL no modal de edição também
+moneyMaskBRL(document.querySelector("#pv_price"));
+moneyMaskBRL(document.querySelector("#pv_cost"));  
 
 function refreshViewName(){
   const cat  = cleanStr(document.querySelector("#pv_cat")?.value);
@@ -823,6 +948,8 @@ if (pvUnit) pvUnit.value = p.unit || "UN";
     document.querySelector("#pv_stock").value = Number(p.stockOnHand || 0);
     document.querySelector("#pv_min").value = Number(p.stockMin || 0);
     document.querySelector("#pv_status").value = p.status || "active";
+    moneyMaskBRL(document.querySelector("#pv_price"));
+moneyMaskBRL(document.querySelector("#pv_cost"));
 
     const photoImg = document.querySelector("#pv_photoImg");
     const photoEmpty = document.querySelector("#pv_photoEmpty");
@@ -922,6 +1049,10 @@ function refreshNewName(){
   if (out) out.value = name;
 }
 
+// aplica máscara BRL nos campos de dinheiro do "Novo produto"
+moneyMaskBRL(document.querySelector("#prd_price"));
+moneyMaskBRL(document.querySelector("#prd_cost"));
+
 bindTaxPicker({ levelKey:"cat",  inputSel:"#prd_cat",  btnAddSel:"#prdCatAdd",  onChange: refreshNewName });
 bindTaxPicker({ levelKey:"sub1", inputSel:"#prd_sub1", btnAddSel:"#prdSub1Add", onChange: refreshNewName });
 bindTaxPicker({ levelKey:"sub2", inputSel:"#prd_sub2", btnAddSel:"#prdSub2Add", onChange: refreshNewName });
@@ -949,7 +1080,7 @@ const name = joinNameFromParts([cat, sub1, sub2, sub3]);
 
 
       const sku = normalizeSku(document.querySelector("#prd_sku")?.value);
-      const unit = cleanStr(document.querySelector("#prd_unit")?.value) || "un";
+      const unit = cleanStr(document.querySelector("#prd_unit")?.value) || "UN";
 
       const priceCents = toCents(document.querySelector("#prd_price")?.value);
       const costCents = toCents(document.querySelector("#prd_cost")?.value);
@@ -970,7 +1101,6 @@ const name = joinNameFromParts([cat, sub1, sub2, sub3]);
 
 
       const prod = {
-  id: uid("prd"),
   name,  // gerado
   cat,
   sub1,
@@ -989,17 +1119,27 @@ const name = joinNameFromParts([cat, sub1, sub2, sub3]);
 
 
 
-      products.push(prod);
-      saveProducts(products);
+      (async () => {
+  try {
+    const created = await window.ProductsStore.create(prod);
 
-      renderProductsTable(getFilters());
+    const products = loadProducts();
+    products.push(created);
+    saveProducts(products);
 
-      const dlgMove = document.querySelector("#dlgMove");
-      if (dlgMove && dlgMove._mv && typeof dlgMove._mv.rebuildProductDatalist === "function") {
-        dlgMove._mv.rebuildProductDatalist();
-      }
+    renderProductsTable(getFilters());
 
-      dlgProduct.close();
+    const dlgMove = document.querySelector("#dlgMove");
+    if (dlgMove && dlgMove._mv && typeof dlgMove._mv.rebuildProductDatalist === "function") {
+      dlgMove._mv.rebuildProductDatalist();
+    }
+
+    dlgProduct.close();
+  } catch (e) {
+    console.error("[Produtos] Erro ao criar no Supabase:", e);
+    alert("Erro ao salvar o produto no banco. Veja o console.");
+  }
+})();
     });
   }
 
@@ -1403,7 +1543,7 @@ const name = joinNameFromParts([cat, sub1, sub2, sub3]);
 
     kind.addEventListener("change", () => setKind(kind.value));
 
-    frm.addEventListener("submit", (ev) => {
+    frm.addEventListener("submit", async (ev) => {
       ev.preventDefault();
 
       if (ev.submitter && ev.submitter.value === "cancel") {
@@ -1448,36 +1588,41 @@ localStorage.setItem(KEY_PURCHASES, JSON.stringify(purchases));
 
 
         const products = loadProducts();
-        const byId = new Map(products.map(p => [p.id, p]));
+const byId = new Map(products.map(p => [p.id, p]));
 
-        for (const it of purchaseItems) {
-          if (!it.qty || it.qty <= 0) continue;
+for (const it of purchaseItems) {
+  if (!it.qty || it.qty <= 0) continue;
 
-          const prod = byId.get(it.productId);
-          if (!prod) continue;
+  const prod = byId.get(it.productId);
+  if (!prod) continue;
 
-          prod.stockOnHand = Number(prod.stockOnHand || 0) + it.qty;
-          if (it.costCents > 0) prod.costCents = it.costCents;
+  // 1) ledger no Supabase
+  await window.StockStore.addMove({
+    productId: prod.id,
+    kind: "in",
+    qty: Number(it.qty || 0),
+    note: `Compra${nf ? " • NF " + nf : ""}${supplier ? " • " + supplier : ""}${date ? " • " + date : ""}`,
+    ref: purchaseId
+  });
 
-          appendMove({
-  id: uid("mov"),
-  productId: prod.id,
-  type: "IN",
-  qty: it.qty,
-  reason: "purchase",
-  ref: purchaseId, // 🔥 liga movimento à compra
-  meta: { nf, supplier, date },
-  note: "", // não precisa mais ficar “parseando texto”
-  createdAt: new Date().toISOString(),
-  createdBy: actor
-});
+  // 2) atualiza estoque no Supabase (pra UI ficar instantânea)
+  const newStock = Number(prod.stockOnHand || 0) + Number(it.qty || 0);
 
-        }
+  const patch = { stockOnHand: newStock };
+  if (Number(it.costCents || 0) > 0) patch.costCents = Number(it.costCents || 0);
 
-        saveProducts(products);
-        renderProductsTable(getFilters());
-        dlg.close();
-        return;
+  const updated = await window.ProductsStore.update(prod.id, patch);
+
+  // 3) atualiza cache
+  byId.set(prod.id, updated);
+}
+
+// commit cache
+saveProducts(Array.from(byId.values()));
+
+renderProductsTable(getFilters());
+dlg.close();
+return;
       }
 
       // PERDA
@@ -1497,22 +1642,30 @@ localStorage.setItem(KEY_PURCHASES, JSON.stringify(purchases));
         const before = Number(prod.stockOnHand || 0);
         if (before - qty < 0) return alert("Estoque insuficiente para registrar perda.");
 
-        prod.stockOnHand = before - qty;
+       const nextStock = before - qty;
 
-        appendMove({
-          id: uid("mov"),
-          productId: prod.id,
-          type: "OUT",
-          qty,
-          reason: "loss",
-          note: `Perda${date ? " • " + date : ""}${note ? " • " + note : ""}`,
-          createdAt: new Date().toISOString()
-        });
+// 1) ledger no Supabase
+await window.StockStore.addMove({
+  productId: prod.id,
+  kind: "out",
+  qty: Number(qty),
+  note: `Perda${date ? " • " + date : ""}${note ? " • " + note : ""}`,
+  ref: null
+});
 
-        saveProducts(products);
-        renderProductsTable(getFilters());
-        dlg.close();
-        return;
+// 2) atualiza estoque no Supabase
+const updated = await window.ProductsStore.update(prod.id, {
+  stockOnHand: nextStock
+});
+
+// 3) atualiza cache em memória
+const idx = products.findIndex(p => p.id === prod.id);
+if (idx >= 0) products[idx] = updated;
+
+saveProducts(products);
+renderProductsTable(getFilters());
+dlg.close();
+return;
       }
 
       // AJUSTE
@@ -1533,22 +1686,31 @@ localStorage.setItem(KEY_PURCHASES, JSON.stringify(purchases));
         const delta = finalVal - before;
         if (delta === 0) return alert("Estoque final igual ao atual.");
 
-        prod.stockOnHand = finalVal;
+        // delta > 0 = entrada, delta < 0 = saída
+const moveKind = delta > 0 ? "in" : "out";
 
-        appendMove({
-          id: uid("mov"),
-          productId: prod.id,
-          type: "ADJUST_FINAL",
-          qty: Math.abs(delta),
-          reason: "inventory",
-          note: `Ajuste (final ${finalVal}) • antes ${before}${date ? " • " + date : ""}${note ? " • " + note : ""}`,
-          createdAt: new Date().toISOString()
-        });
+// 1) ledger no Supabase
+await window.StockStore.addMove({
+  productId: prod.id,
+  kind: moveKind,
+  qty: Math.abs(delta),
+  note: `Ajuste (final ${finalVal}) • antes ${before}${date ? " • " + date : ""}${note ? " • " + note : ""}`,
+  ref: null
+});
 
-        saveProducts(products);
-        renderProductsTable(getFilters());
-        dlg.close();
-        return;
+// 2) atualiza estoque no Supabase
+const updated = await window.ProductsStore.update(prod.id, {
+  stockOnHand: finalVal
+});
+
+// 3) atualiza cache em memória
+const idx = products.findIndex(p => p.id === prod.id);
+if (idx >= 0) products[idx] = updated;
+
+saveProducts(products);
+renderProductsTable(getFilters());
+dlg.close();
+return;
       }
 
       alert("Selecione um tipo de movimentação.");
@@ -1594,9 +1756,18 @@ localStorage.setItem(KEY_PURCHASES, JSON.stringify(purchases));
   }
 
   function openMoveModal() {
-    const dlg = document.querySelector("#dlgMove");
-    if (dlg && dlg._mv) dlg._mv.reset();
+  const dlg = document.querySelector("#dlgMove");
+  if (!dlg) {
+    alert("Modal #dlgMove não encontrado no HTML.");
+    return;
   }
+  if (!dlg._mv) {
+    alert("Modal de movimentação não inicializou. Verifique IDs do #dlgMove (veja console).");
+    console.warn("[Mov] dlg._mv não existe. Provável mismatch de IDs no HTML do dlgMove.");
+    return;
+  }
+  dlg._mv.reset();
+}
 
   // =========================
   // Inicialização da página
@@ -1620,7 +1791,16 @@ localStorage.setItem(KEY_PURCHASES, JSON.stringify(purchases));
     bindFilters();
     bindSortHeaders();
 
+    (async () => {
+  try {
+    const list = await window.ProductsStore.list({ limit: 1000 });
+setProducts(list);
+  } catch (e) {
+    console.error("[Produtos] Falha ao carregar do Supabase:", e);
+  } finally {
     renderProductsTable(getFilters());
+  }
+})();
 
     btnNewProduct.onclick = () => dlgProduct.showModal();
 

@@ -105,6 +105,11 @@ function openPrintPDF(title, subtitle, headers, rows){
     return new Date(y, m-1, d, 0,0,0,0);
   }
 
+  function uid(){
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+  return `id_${Date.now()}_${Math.random().toString(36).slice(2,10)}`;
+}
+
   function loadCashEvents(){
     // CoreCash pode ter nomes diferentes; fallback pra storage
     if (window.CoreCash?.getEvents) return window.CoreCash.getEvents();
@@ -174,61 +179,71 @@ function openPrintPDF(title, subtitle, headers, rows){
 
   function uniq(arr){ return [...new Set(arr)]; }
 
-  function loadCustomers(){
-  // ✅ padrão atual (Venda)
-  let list = [];
-  try { list = JSON.parse(localStorage.getItem("core.customers.v1") || "[]"); } catch(e){}
+  async function loadCustomers(){
+  try{
+    if (!window.CustomersStore?.list){
+      console.warn("[RELATORIOS] CustomersStore não encontrado.");
+      return [];
+    }
 
-  // fallback legado (se existir em algum browser antigo)
-  if (!Array.isArray(list) || list.length === 0){
-    try { list = JSON.parse(localStorage.getItem("corepos:customers") || "[]"); } catch(e){}
-  }
-
-  if (!Array.isArray(list)) list = [];
-
-  // normaliza para o formato {id, name, doc, phone}
-  return list.map(c => ({
-    id: String(c.id || ""),
-    name: String(c.name || c.nome || "").trim(),
-    doc: String(c.doc || c.cpf || "").trim(),
-    phone: String(c.phone || c.telefone || "").trim(),
-  })).filter(c => c.id && c.name);
-}
-
-// ===== CONTAS A PAGAR (AP) =====
-const KEY_AP = "core.ap.payables.v1";
-
-const KEY_AP_CATS = "core.ap.categories.v1";
-
-function loadAPCats(){
-  try {
-    const x = JSON.parse(localStorage.getItem(KEY_AP_CATS) || "[]");
-    const list = Array.isArray(x) ? x.map(s=>String(s||"").trim()).filter(Boolean) : [];
-    return [...new Set(list)];
-  } catch {
+    return await window.CustomersStore.list({
+      limit: 1000,
+      orderBy: "name",
+      ascending: true
+    });
+  }catch(err){
+    console.error("[RELATORIOS] Erro ao carregar clientes:", err);
     return [];
   }
 }
 
-function saveAPCats(list){
-  const clean = (list || []).map(s=>String(s||"").trim()).filter(Boolean);
-  const uniq = [...new Set(clean)];
-  localStorage.setItem(KEY_AP_CATS, JSON.stringify(uniq));
+let apCategoriesCache = [];
+let apPayablesCache = [];
+
+async function loadAPCats(){
+  try{
+    if (!window.APCategoriesStore?.list){
+      console.warn("[RELATORIOS] APCategoriesStore não encontrado.");
+      apCategoriesCache = [];
+      return apCategoriesCache;
+    }
+
+    apCategoriesCache = await window.APCategoriesStore.list({
+      limit: 1000,
+      orderBy: "name",
+      ascending: true
+    });
+
+    return apCategoriesCache;
+  }catch(err){
+    console.error("[RELATORIOS] Erro ao carregar categorias AP:", err);
+    apCategoriesCache = [];
+    return apCategoriesCache;
+  }
 }
 
+async function loadAP(){
+  try{
+    if (!window.APPayablesStore?.list){
+      console.warn("[RELATORIOS] APPayablesStore não encontrado.");
+      apPayablesCache = [];
+      return apPayablesCache;
+    }
 
+    apPayablesCache = await window.APPayablesStore.list({
+      limit: 5000,
+      orderBy: "due_date",
+      ascending: true
+    });
 
-function loadAP(){
-  try { return JSON.parse(localStorage.getItem(KEY_AP) || "[]"); }
-  catch { return []; }
-}
-function saveAP(list){
-  localStorage.setItem(KEY_AP, JSON.stringify(list || []));
+    return apPayablesCache;
+  }catch(err){
+    console.error("[RELATORIOS] Erro ao carregar contas a pagar:", err);
+    apPayablesCache = [];
+    return apPayablesCache;
+  }
 }
 
-function uid(){
-  return "ap_" + Math.random().toString(16).slice(2) + "_" + Date.now().toString(16);
-}
 
 function dayStart(d){
   const x = new Date(d);
@@ -290,6 +305,35 @@ function apBadge(st){
 
 function sum(list){
   return (list || []).reduce((a,x)=> a + Number(x.amount || 0), 0);
+}
+
+
+// ========================================
+// HELPERS DE MOVIMENTAÇÃO (PERDA / AJUSTE)
+// ========================================
+
+function loadStockMoves(){
+  if (window.CoreInventory?.getStockMoves) {
+    return window.CoreInventory.getStockMoves();
+  }
+
+  try{
+    return JSON.parse(localStorage.getItem("core.stock.movements.v1") || "[]");
+  }catch{
+    return [];
+  }
+}
+
+
+function groupMovesByDay(moves){
+  const map = new Map();
+
+  for(const m of moves){
+    const key = isoDayKey(m.created_at || m.at);
+    map.set(key, (map.get(key) || 0) + Number(m.qty || 0));
+  }
+
+  return [...map.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
 }
 
 
@@ -359,66 +403,64 @@ function sum(list){
     const btnRefresh = document.getElementById("btnRefresh");
     const btnClear = document.getElementById("btnClear");
 
-    function draw(){
-      const data = window.CoreAudit.list({ limit: 120 });
+   async function draw(){
+  try{
+  const items = window.CoreAudit.list({ limit: 120 }) || [];
 
-      const headers = ["Data/Hora", "Ação", "Página", "Usuário", "Detalhes"];
-const rows = data.map(x => [
-  x.ts_br || x.ts_iso || x.ts || "",
-  x.action || "",
-  x.page || "",
-  x.user ? `${x.user.name} (${x.user.role})` : "",
-  x.details ? JSON.stringify(x.details) : ""
-]);
+  // Render
+  listEl.innerHTML = items.length
+    ? items.map(it => {
+        const when = it.at ? new Date(it.at) : null;
+        const date = when ? when.toLocaleDateString("pt-BR") : "—";
+        const time = when ? when.toLocaleTimeString("pt-BR") : "—";
 
-const btnCSV = document.getElementById("btnExportCSV");
-const btnPDF = document.getElementById("btnExportPDF");
+        const who = it.by || it.user || it.email || "—";
+        const action = it.action || it.kind || "—";
+        const ref = it.ref || it.entityId || it.productId || "—";
+        const extra = it.note || it.msg || it.details || "";
 
-if (btnCSV) btnCSV.onclick = () => {
-  downloadCSV(`auditoria_${new Date().toISOString().slice(0,10)}`, headers, rows);
-};
-
-if (btnPDF) btnPDF.onclick = () => {
-  openPrintPDF("Auditoria", "Lista atual", headers, rows);
-};
-
-
-document.getElementById("btnExportCSV").onclick = () => {
-  downloadCSV(`auditoria_${new Date().toISOString().slice(0,10)}`, headers, rows);
-};
-document.getElementById("btnExportPDF").onclick = () => {
-  openPrintPDF("Auditoria", "Lista atual", headers, rows);
-};
-
-
-      if (!data.length) {
-        listEl.innerHTML = `<div style="color:#64748b; font-weight:800;">Sem registros ainda.</div>`;
-        return;
-      }
-
-      listEl.innerHTML = data.map(x => `
-        <div style="
-          background: rgba(255,255,255,.9);
-          border: 1px solid rgba(15,23,42,.10);
-          border-radius: 16px;
-          padding: 12px;
-          box-shadow: 0 12px 22px rgba(15,23,42,.08);
-        ">
-          <div style="font-weight:950; color:#0f172a;">
-            ${x.action}
-            <span style="font-weight:800; color:#64748b;">• ${x.page}</span>
+        return `
+          <div class="r-row">
+            <div style="font-weight:900">${action}</div>
+            <div style="color:#64748b;font-weight:800">${date} ${time}</div>
+            <div style="color:#0f172a;font-weight:900">${who}</div>
+            <div style="color:#475569;font-weight:800">${ref}</div>
+            <div style="color:#64748b">${String(extra).slice(0,120)}</div>
           </div>
-          <div style="margin-top:6px; color:#334155; font-weight:800;">
-            ${x.user ? `${x.user.name} (${x.user.role})` : "Sem usuário"} • ${x.ts_br || x.ts || x.ts_iso}
-          </div>
-          <div style="margin-top:6px; color:#64748b; font-weight:700; font-size:12px;">
-            ${Object.keys(x.details || {}).length ? JSON.stringify(x.details) : ""}
-          </div>
-        </div>
-      `).join("");
-    }
+        `;
+      }).join("")
+    : `<div style="color:#64748b;font-weight:800;">Sem logs por enquanto.</div>`;
 
-    btnRefresh.onclick = () => draw();
+  // Export (CSV/PDF) do que está na tela
+  const headers = ["Ação", "Data", "Hora", "Usuário", "Ref", "Detalhes"];
+  const rows = items.map(it => {
+    const when = it.at ? new Date(it.at) : null;
+    const date = when ? when.toLocaleDateString("pt-BR") : "—";
+    const time = when ? when.toLocaleTimeString("pt-BR") : "—";
+    const who = it.by || it.user || it.email || "—";
+    const action = it.action || it.kind || "—";
+    const ref = it.ref || it.entityId || it.productId || "—";
+    const extra = it.note || it.msg || it.details || "";
+    return [action, date, time, who, String(ref), String(extra)];
+  });
+
+  const btnCSV = document.getElementById("btnExportCSV");
+  const btnPDF = document.getElementById("btnExportPDF");
+
+  if (btnCSV) btnCSV.onclick = () => {
+    const fn = `auditoria_${new Date().toISOString().slice(0,10)}`;
+    downloadCSV(fn, headers, rows);
+  };
+
+ if (btnPDF) btnPDF.onclick = () => {
+  openPrintPDF("Auditoria", "Logs do sistema", headers, rows);
+};
+} catch(err){
+  console.error(err);
+  alert(err?.message || String(err));
+}
+}
+btnRefresh.onclick = () => draw();
     btnClear.onclick = () => { window.CoreAudit.clear(); draw(); };
 
     draw();
@@ -492,7 +534,52 @@ document.getElementById("btnExportPDF").onclick = () => {
     const dEnd = document.getElementById("dEnd");
     const btnApply = document.getElementById("btnApply");
 
-    function draw(){
+   function sumPaymentsFromCashEvents(salesEvents){
+  let cash = 0, pix = 0, credit = 0, debit = 0;
+
+  for (const ev of (salesEvents || [])){
+    // aceita formatos:
+    // A) ev.payments = {cash,pix,cardCredit,cardDebit}
+    // B) ev.meta.payments = {cash,pix,cardCredit,cardDebit}
+    // C) ev.payments = [{method,amount}, ...] (caso antigo)
+    const p = ev.payments ?? ev.meta?.payments ?? null;
+
+    if (Array.isArray(p)){
+      for (const row of p){
+        const m = String(row?.method || row?.type || "").toLowerCase();
+        const a = Number(row?.amount || 0);
+        if (!a) continue;
+
+        if (m === "cash" || m === "dinheiro") cash += a;
+        else if (m === "pix") pix += a;
+        else if (m === "credit" || m === "cardcredit" || m === "credito" || m === "crédito") credit += a;
+        else if (m === "debit" || m === "carddebit" || m === "debito" || m === "débito") debit += a;
+      }
+      continue;
+    }
+
+    if (p && typeof p === "object"){
+      cash   += Number(p.cash || 0);
+      pix    += Number(p.pix || 0);
+      credit += Number(p.cardCredit || p.credit || 0);
+      debit  += Number(p.cardDebit || p.debit || 0);
+      continue;
+    }
+
+    // fallback ultra básico: payment_method + total (se existir)
+    const pm = String(ev.payment_method || ev.meta?.payment_method || "").toLowerCase();
+    const total = Number(ev.total || 0);
+
+    if (pm === "cash") cash += total;
+    else if (pm === "pix") pix += total;
+    else if (pm === "card") credit += total; // não distingue
+  }
+
+  return { cash, pix, credit, debit };
+}
+
+    async function draw(){
+  try{
       const s = parseDateInput(dStart.value) || start;
       const e = parseDateInput(dEnd.value) || end;
       e.setHours(23,59,59,999);
@@ -513,16 +600,9 @@ document.getElementById("kProfit").textContent = moneyBR(k.profitNet);
 document.getElementById("kFees").textContent = moneyBR(k.feeTotal);
 document.getElementById("kProfitGross").textContent = moneyBR(k.profitGross);
 
-      // somar pagamentos do período (modelo CoreCash: objeto)
-let payCash = 0, payPix = 0, payCredit = 0, payDebit = 0;
-
-for (const sEv of sales){
-  const p = sEv.payments || sEv.meta?.payments || {};
-  payCash += Number(p.cash || 0);
-  payPix += Number(p.pix || 0);
-  payCredit += Number(p.cardCredit || 0);
-  payDebit += Number(p.cardDebit || 0);
-}
+ // ✅ Por pagamento: calcula pelos eventos do CoreCash (sem Supabase = sem 400)
+const pay = sumPaymentsFromCashEvents(sales);
+let payCash = pay.cash, payPix = pay.pix, payCredit = pay.credit, payDebit = pay.debit;
 
 document.getElementById("kCash").textContent = moneyBR(payCash);
 document.getElementById("kPix").textContent = moneyBR(payPix);
@@ -664,7 +744,11 @@ document.getElementById("btnExportPDF").onclick = () => {
 
 
 
-    }
+      } catch(err){
+    console.error(err);
+    alert(err?.message || String(err));
+  }
+}
 
     btnApply.onclick = draw;
     draw();
@@ -740,7 +824,8 @@ function renderResultado(){
     return keys;
   }
 
-  function draw(){
+  async function draw(){
+  try{
     const s = parseDateInput(rStart.value) || start;
     const e = parseDateInput(rEnd.value) || end;
     e.setHours(23,59,59,999);
@@ -751,7 +836,7 @@ function renderResultado(){
     const k = calcKpis(sales);
 
     // --- contas pagas no período
-    const apAll = loadAP();
+    const apAll = await loadAP();
     const paid = apAll.filter(item => {
       const st = apStatus(item);
       if (st !== "paid") return false;
@@ -825,8 +910,11 @@ function renderResultado(){
         rows
       );
     };
+   } catch(err){
+    console.error(err);
+    alert(err?.message || String(err));
   }
-
+}
   rApply.onclick = draw;
   draw();
 }
@@ -1143,7 +1231,8 @@ function drawLineChartSigned(canvas, series){
     const btnVApply = document.getElementById("btnVApply");
     const vList = document.getElementById("vList");
 
-    function draw(){
+    async function draw(){
+  try{
       const s = parseDateInput(vStart.value) || start;
       const e = parseDateInput(vEnd.value) || end;
       e.setHours(23,59,59,999);
@@ -1276,6 +1365,9 @@ function itemThumb(it){
 
 const opCosts = sale.meta?.operationalCosts || [];
 const opFees = Number(sale.meta?.cardFeeTotal || 0);
+
+const opCostsTotal = (opCosts || []).reduce((a, c) => a + Number(c.value || 0), 0);
+const opTotal = opCostsTotal + opFees;
 
 const costTotal = Number(sale.costTotal || 0);
 const profitGross = Number(sale.meta?.profitGross != null ? sale.meta.profitGross : (totalFinal - costTotal));
@@ -1423,7 +1515,7 @@ openModal("Detalhes da venda", `
     }
     ${
       opCosts.length
-        ? `<div style="text-align:right;color:#334155;font-weight:950;margin-top:4px;">Total: ${moneyBR(opFees)}</div>`
+        ? `<div style="text-align:right;color:#334155;font-weight:950;margin-top:4px;">Total: ${moneyBR(opTotal)}</div>`
         : ``
     }
   </div>
@@ -1468,12 +1560,14 @@ openModal("Detalhes da venda", `
 
         });
       });
-    }
-
-    btnVApply.onclick = draw;
-    vUser.onchange = draw;
-    draw();
+      } catch(err){
+    console.error(err);
+    alert(err?.message || String(err));
   }
+}
+  btnVApply.onclick = draw;
+draw();
+}
 
 
   function renderProdutos(){
@@ -1520,7 +1614,8 @@ openModal("Detalhes da venda", `
     return `<div style="font-weight:950;color:#94a3b8;">IMG</div>`;
   }
 
-  function draw(){
+  async function draw(){
+  try{
     const s = parseDateInput(pStart.value) || start;
     const e = parseDateInput(pEnd.value) || end;
     e.setHours(23,59,59,999);
@@ -1611,10 +1706,13 @@ document.getElementById("btnExportPDF").onclick = () => {
         </div>
       </div>
     `).join("");
+    } catch(err){
+    console.error(err);
+    alert(err?.message || String(err));
   }
-
-  btnPApply.onclick = draw;
-  draw();
+}
+ btnPApply.onclick = draw;
+draw();
 }
 
 
@@ -1674,7 +1772,8 @@ document.getElementById("btnExportPDF").onclick = () => {
     return n.includes("dev");
   }
 
-  function draw(){
+  async function draw(){
+  try{
     const s = parseDateInput(vdStart.value) || start;
     const e = parseDateInput(vdEnd.value) || end;
     e.setHours(23,59,59,999);
@@ -1850,10 +1949,13 @@ document.getElementById("btnExportPDF").onclick = () => {
   });
 });
 
+    } catch(err){
+    console.error(err);
+    alert(err?.message || String(err));
   }
-
+}
   btnVdApply.onclick = draw;
-  draw();
+draw();
 }
 
 
@@ -1906,7 +2008,8 @@ document.getElementById("btnExportPDF").onclick = () => {
     const btnCApply = document.getElementById("btnCApply");
     const cList = document.getElementById("cList");
 
-    function draw(){
+    async function draw(){
+  try{
       const s = parseDateInput(cStart.value) || start;
       const e = parseDateInput(cEnd.value) || end;
       e.setHours(23,59,59,999);
@@ -1953,11 +2056,14 @@ for (const sEv of sales){
             </div>
           `;
         }).join("");
-    }
-
-    btnCApply.onclick = draw;
-    draw();
+      } catch(err){
+    console.error(err);
+    alert(err?.message || String(err));
   }
+}
+  btnCApply.onclick = draw;
+draw();
+}
 
   // ===== Clientes =====
   function renderClientes(){
@@ -1999,7 +2105,8 @@ for (const sEv of sales){
     const btnClApply = document.getElementById("btnClApply");
     const clList = document.getElementById("clList");
 
-    function draw(){
+    async function draw(){
+  try{
       const s = parseDateInput(clStart.value) || start;
       const e = parseDateInput(clEnd.value) || end;
       e.setHours(23,59,59,999);
@@ -2018,7 +2125,7 @@ for (const sEv of sales){
       }
 
       // ✅ inclui clientes cadastrados (mesmo sem vendas no período)
-const allCustomers = loadCustomers();
+const allCustomers = await loadCustomers();
 for (const c of allCustomers){
   if (!map.has(c.id)){
     map.set(c.id, { id: c.id, name: c.name, count: 0, total: 0 });
@@ -2177,366 +2284,345 @@ openModal("Compras do cliente", `
 
         });
       });
-    }
+      } catch(err){
+    console.error(err);
+    alert(err?.message || String(err));
+  }
+}
+  btnClApply.onclick = draw;
+draw();
+}
 
-    btnClApply.onclick = draw;
-    draw();
+  // =======================
+// ESTOQUE (V2) — Compras / Ajustes / Perdas
+// =======================
+
+const KEY_PRODUCTS   = "core.products.v1";
+const KEY_PURCHASES  = "core.stock.purchases.v1";
+const KEY_MOVEMENTS  = "core.stock.movements.v1";
+
+function safeLoad(key){
+  try {
+    const v = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch { return []; }
+}
+
+function buildProductsIndex(){
+  const list = safeLoad(KEY_PRODUCTS);
+
+  const byId = new Map();
+  const bySku = new Map();
+  const byBarcode = new Map();
+
+  for (const p of list){
+    const id = String(p.id || "").trim();
+    const sku = String(p.sku || "").trim();
+    const barcode = String(p.barcode || "").trim();
+
+    if (id) byId.set(id, p);
+    if (sku) bySku.set(sku, p);
+    if (barcode) byBarcode.set(barcode, p);
   }
 
-  function renderEstoque(){
-  const KEY_MOVES = "core.stock.movements.v1";
-  const KEY_PRODUCTS = "core.products.v1";
-  const KEY_PURCHASES = "core.stock.purchases.v1";
+  function pick(ref){
+    if (!ref) return null;
+    const id = String(ref.id || ref.productId || "").trim();
+    const sku = String(ref.sku || "").trim();
+    const barcode = String(ref.barcode || "").trim();
 
-  function loadMoves(){
-    try { return JSON.parse(localStorage.getItem(KEY_MOVES) || "[]"); }
-    catch { return []; }
-  }
-  function loadProducts(){
-    try { return JSON.parse(localStorage.getItem(KEY_PRODUCTS) || "[]"); }
-    catch { return []; }
-  }
-  function loadPurchases(){
-    try { return JSON.parse(localStorage.getItem(KEY_PURCHASES) || "[]"); }
-    catch { return []; }
+    return (id && byId.get(id)) || (sku && bySku.get(sku)) || (barcode && byBarcode.get(barcode)) || null;
   }
 
-  const products = loadProducts();
-  const byProdId = new Map(products.map(p => [String(p.id), p]));
+  return { list, pick };
+}
 
-  const purchases = loadPurchases();
-  const byPurchaseId = new Map(purchases.map(p => [String(p.id), p]));
+// Normaliza "at" pra qualquer registro
+function pickAt(x){
+  return x.at || x.created_at || x.createdAt || x.date || x.doneAt || x.paidAt || null;
+}
 
-  // aceita: compra / perda / ajuste
-  // ✅ inclui "inventory" + type ADJUST_FINAL (seu ajuste de estoque final)
-  const moves = loadMoves()
-    .filter(m => {
-      const r = String(m.reason || "").toLowerCase();
-      const t = String(m.type || "").toUpperCase();
+// Normaliza "qty"
+function pickQty(x){
+  return Number(
+    x.qty ?? x.quantity ?? x.qtd ?? x.amountQty ?? x.deltaQty ?? 0
+  ) || 0;
+}
 
-      const isPurchase = (r === "purchase" || r === "compra");
-      const isLoss = (r === "loss" || r === "perda");
-      const isAdjust =
-        (r === "adjust" || r === "ajuste" || r === "adjustment") ||
-        (r === "inventory" && t === "ADJUST_FINAL");
+// Normaliza custo (pra compra)
+function pickCost(x){
+  return Number(
+    x.cost ?? x.costUnit ?? x.unitCost ?? x.custo ?? x.priceCost ?? 0
+  ) || 0;
+}
 
-      return isPurchase || isLoss || isAdjust;
-    })
-    .slice()
-    .sort((a,b)=> new Date(b.createdAt || b.at || 0) - new Date(a.createdAt || a.at || 0));
+// Normaliza total (pra compra)
+function pickTotal(x){
+  return Number(
+    x.total ?? x.totalCost ?? x.totalValue ?? x.value ?? 0
+  ) || 0;
+}
 
-  function thumb(src){
-    if (src) return `<img src="${src}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">`;
-    return `<div style="font-weight:950;color:#94a3b8;">IMG</div>`;
+function normalizePurchaseRow(row){
+  // tenta extrair "produto"
+  const ref = {
+    id: row.productId || row.id || row.pid || (row.product && row.product.id),
+    sku: row.sku || (row.product && row.product.sku),
+    barcode: row.barcode || (row.product && row.product.barcode)
+  };
+
+  return {
+    kind: "PURCHASE",
+    at: pickAt(row),
+    ref,
+    qty: pickQty(row),
+    cost: pickCost(row),
+    total: pickTotal(row) || (pickQty(row) * pickCost(row)),
+    note: row.note || row.obs || row.reason || "",
+  };
+}
+
+function normalizeMoveRow(row){
+  const ref = {
+    id: row.productId || row.id || row.pid || (row.product && row.product.id),
+    sku: row.sku || (row.product && row.product.sku),
+    barcode: row.barcode || (row.product && row.product.barcode)
+  };
+
+  // seu padrão correto é row.type: "LOSS" | "ADJUST" | "PURCHASE"
+  const type = String(row.type || row.kind || row.reason || "").toUpperCase();
+
+  return {
+    kind: type, // "LOSS" / "ADJUST"
+    at: pickAt(row),
+    ref,
+    qty: pickQty(row),
+    note: row.note || row.obs || "",
+  };
+}
+
+function sumByDay(list, start, end){
+  const map = new Map();
+  for (const x of list){
+    if (!x.at) continue;
+    if (!inRange(x.at, start, end)) continue;
+    const key = isoDayKey(x.at);
+    map.set(key, (map.get(key) || 0) + 1);
+  }
+  return [...map.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+}
+
+async function renderEstoque(){
+  const sb =
+    window.sb ||
+    window.supabase ||
+    window.supabaseClient ||
+    window.CoreSupabase ||
+    window.coreSupabase ||
+    null;
+
+  if (!sb || typeof sb.from !== "function") {
+    console.error("Supabase client inválido:", sb);
+    alert("Supabase não carregou corretamente. Verifique o supabaseClient.js.");
+    return;
   }
 
-  function typeLabelMove(m){
-    const r = String(m.reason || "").toLowerCase();
-    const t = String(m.type || "").toUpperCase();
-
-    if (r === "purchase" || r === "compra") return "COMPRA";
-    if (r === "loss" || r === "perda") return "PERDA";
-    if (r === "adjust" || r === "ajuste" || r === "adjustment") return "AJUSTE";
-    if (r === "inventory" && t === "ADJUST_FINAL") return "AJUSTE";
-    return "";
-  }
-
-  function titleLine(m){
-    const r = String(m.reason || "").toLowerCase();
-    if (r === "purchase" || r === "compra"){
-      const pur = byPurchaseId.get(String(m.ref || "")) || null;
-      const nf = pur?.nf || m.meta?.nf || "";
-      return nf ? `Compra #${nf}` : "Compra";
-    }
-    return typeLabelMove(m);
-  }
-
-  function whenBR(m){
-    const iso = m.createdAt || m.at || "";
-    const d = iso ? new Date(iso) : new Date();
-    return `${d.toLocaleDateString("pt-BR")} ${d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}`;
-  }
-
-  function dayKeyFromISO(iso){
-    const d = new Date(iso);
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,"0");
-    const da = String(d.getDate()).padStart(2,"0");
-    return `${y}-${m}-${da}`;
-  }
-  function todayKey(){
-    return dayKeyFromISO(new Date().toISOString());
-  }
+  const { start, end } = defaultRangeLast30();
+  const startStr = isoDayKey(start);
+  const endStr = isoDayKey(end);
 
   content.innerHTML = `
     <div class="r-card">
       <div class="r-head">
         <div>
           <div class="r-title"><span class="ico">📦</span> Estoque</div>
-          <div class="r-sub">Movimentações (compra, perda, ajuste)</div>
+          <div class="r-sub">Movimentações de compra, perda e ajuste</div>
         </div>
 
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-          <input class="r-btn" style="padding:0 12px;" type="date" id="estDate">
+        <div class="r-filters">
+          <div class="r-field">
+            <label>Início</label>
+            <input type="date" id="eStart" value="${startStr}">
+          </div>
+
+          <div class="r-field">
+            <label>Fim</label>
+            <input type="date" id="eEnd" value="${endStr}">
+          </div>
+
+          <div class="r-field">
+            <label>Tipo</label>
+            <select id="eType">
+              <option value="all">Todos</option>
+              <option value="compra">Compras</option>
+              <option value="perda">Perdas</option>
+              <option value="ajuste">Ajustes</option>
+            </select>
+          </div>
+
+          <button class="r-btn primary" id="btnEApply">Aplicar</button>
           <button class="r-btn" id="btnExportCSV">CSV</button>
           <button class="r-btn" id="btnExportPDF">PDF</button>
         </div>
       </div>
 
       <div class="hr" style="margin:12px 0;"></div>
-      <div id="estList" style="display:grid; gap:10px;"></div>
+      <div id="eList" style="display:grid; gap:10px;"></div>
     </div>
   `;
 
-  const estList = document.getElementById("estList");
-  const estDate = document.getElementById("estDate");
+  const eStart = document.getElementById("eStart");
+  const eEnd = document.getElementById("eEnd");
+  const eType = document.getElementById("eType");
+  const btnEApply = document.getElementById("btnEApply");
+  const eList = document.getElementById("eList");
 
-  // default hoje
-  if (estDate) estDate.value = todayKey();
-
-  function getFiltered(){
-    const key = estDate?.value || "";
-    if (!key) return moves;
-
-    return moves.filter(m => {
-      const iso = m.createdAt || m.at || "";
-      if (!iso) return false;
-      return dayKeyFromISO(iso) === key;
-    });
+  function startOfDayISO(dateStr){
+    const [y,m,d] = String(dateStr || "").split("-").map(Number);
+    const dt = new Date(y, (m - 1), d, 0, 0, 0, 0);
+    return dt.toISOString();
   }
 
-  function buildExportRows(list){
-    // um CSV simples por movimento (pra compra, tenta puxar NF/fornecedor)
-    const rows = list.map(m => {
-      const iso = m.createdAt || m.at || "";
-      const d = iso ? new Date(iso) : new Date();
-      const data = d.toLocaleDateString("pt-BR");
-      const hora = d.toLocaleTimeString("pt-BR", {hour:"2-digit",minute:"2-digit"});
-      const who = m.createdBy || m.by || "—";
-      const label = typeLabelMove(m);
-
-      if (String(m.reason||"").toLowerCase() === "purchase" || String(m.reason||"").toLowerCase() === "compra"){
-  const pur = byPurchaseId.get(String(m.ref||"")) || null;
-  const nf = pur?.nf || (m.meta?.nf || "");
-  const supplier = pur?.supplier || (m.meta?.supplier || "");
-
-  const items = Array.isArray(pur?.items) ? pur.items : [];
-  const itemsCount = items.length;
-
-  // monta lista "Produto xQtd" usando os produtos do cadastro (pra pegar nome)
-  const parts = items.map(it => {
-    const p = byProdId.get(String(it.productId||"")) || null;
-    const name = p?.name || `#${it.productId || "?"}`;
-    const q = Number(it.qty || 0);
-    return `${name} x${q}`;
-  });
-
-  // limita pra não virar uma bíblia no PDF/CSV
-  const itemsPreview = parts.length > 6
-    ? parts.slice(0, 6).join("; ") + " …"
-    : parts.join("; ");
-
-  return [
-    label,
-    data,
-    hora,
-    who,
-    nf ? `NF ${nf}` : "NF",
-    supplier || "—",
-    itemsCount ? itemsPreview : "Itens: 0"
-  ];
-}
-
-
-      const p = byProdId.get(String(m.productId || "")) || null;
-      const prod = p?.name || "—";
-      return [label, data, hora, who, prod, String(Number(m.qty||0)), String(m.note||"")];
-    });
-
-    return rows;
+  function nextDayStartISO(dateStr){
+    const [y,m,d] = String(dateStr || "").split("-").map(Number);
+    const dt = new Date(y, (m - 1), d, 0, 0, 0, 0);
+    dt.setDate(dt.getDate() + 1);
+    return dt.toISOString();
   }
 
-  function draw(){
-    const filtered = getFiltered();
-
-    if (!filtered.length){
-      estList.innerHTML = `<div style="color:#64748b; font-weight:800;">Sem movimentações para esta data.</div>`;
-      return;
+  function thumb(src){
+    if (src) {
+      return `<img src="${src}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;">`;
     }
-
-    estList.innerHTML = filtered.slice(0, 200).map(m => {
-      const title = titleLine(m);
-      const who = m.createdBy || m.by || "—";
-      const when = whenBR(m);
-
-      const reason = String(m.reason || "").toLowerCase();
-
-      // produto (perda/ajuste)
-      const p = byProdId.get(String(m.productId || "")) || null;
-      const prodName = p?.name || "—";
-
-      // compra (puxa ref)
-      const showProdLine = !(reason === "purchase" || reason === "compra");
-
-      return `
-        <div class="r-row" data-movid="${String(m.id||"")}">
-          <div class="t">${title} <span style="font-weight:800;color:#64748b;">• ${when}</span></div>
-          <div class="m">
-            Por: <b>${who}</b>
-            ${showProdLine && p ? ` • Produto: <b>${prodName}</b> • Qtd: <b>${Number(m.qty||0)}</b>` : ``}
-          </div>
-        </div>
-      `;
-    }).join("");
-
-    // export (só do que está na tela)
-    const headers = ["Tipo", "Data", "Hora", "Usuário", "Ref/Produto", "Fornecedor/Qtd", "Obs/Itens"];
-
-    const rows = buildExportRows(filtered);
-
-    const btnCSV = document.getElementById("btnExportCSV");
-    const btnPDF = document.getElementById("btnExportPDF");
-
-    if (btnCSV) btnCSV.onclick = () => {
-      const fn = `estoque_${(estDate?.value || "tudo")}`;
-      downloadCSV(fn, headers, rows);
-    };
-
-    if (btnPDF) btnPDF.onclick = () => {
-      const title = "Estoque - Movimentações";
-      const subtitle = estDate?.value ? `Data: ${estDate.value.split("-").reverse().join("/")}` : "Todos";
-      openPrintPDF(title, subtitle, headers, rows);
-    };
-
-    // detalhes no clique
-    estList.querySelectorAll(".r-row").forEach(row=>{
-      row.addEventListener("click", ()=>{
-        const id = row.getAttribute("data-movid");
-        const m = moves.find(x => String(x.id||"") === String(id));
-        if (!m) return;
-
-        const who = m.createdBy || m.by || "—";
-        const when = whenBR(m);
-        const reason = String(m.reason || "").toLowerCase();
-        const type = String(m.type || "").toUpperCase();
-
-        // COMPRA (detalhada)
-        if (reason === "purchase" || reason === "compra"){
-          const pur = byPurchaseId.get(String(m.ref||"")) || null;
-
-          if (!pur){
-            openModal("Compra", `
-              <div style="color:#64748b;font-weight:800;">
-                Compra não encontrada em <code>${KEY_PURCHASES}</code>. (ref: ${m.ref||"—"})
-              </div>
-            `);
-            return;
-          }
-
-          const items = Array.isArray(pur.items) ? pur.items : [];
-
-          openModal(`Compra #${pur.nf || "—"}`, `
-            <div style="font-weight:950;color:#0f172a;">Fornecedor: ${pur.supplier || "—"}</div>
-            <div style="margin-top:6px;color:#334155;font-weight:900;font-size:12px;">
-              Data: <b>${pur.date || "—"}</b> • Lançado em: <b>${new Date(pur.createdAt).toLocaleString("pt-BR")}</b> • Por: <b>${pur.createdBy || who}</b>
-            </div>
-
-            <div class="hr" style="margin:12px 0;"></div>
-
-            <div style="font-weight:950;color:#0f172a;">Itens</div>
-            <div style="display:grid;gap:10px;margin-top:10px;">
-              ${
-                items.length ? items.map(it=>{
-                  const p = byProdId.get(String(it.productId||"")) || null;
-                  const img = p?.imageData || "";
-                  return `
-                    <div style="
-                      display:grid;
-                      grid-template-columns:56px 1fr auto;
-                      gap:12px;
-                      align-items:center;
-                      border:1px solid rgba(15,23,42,.08);
-                      background:rgba(255,255,255,.92);
-                      border-radius:18px;
-                      padding:10px;
-                    ">
-                      <div style="
-                        width:56px;height:56px;border-radius:16px;overflow:hidden;
-                        border:1px solid rgba(15,23,42,.08);
-                        background:rgba(148,163,184,.14);
-                        display:grid;place-items:center;
-                      ">
-                        ${thumb(img)}
-                      </div>
-                      <div>
-                        <div style="font-weight:950;color:#0f172a;">${p?.name || "Produto"}</div>
-                        <div style="color:#64748b;font-weight:800;font-size:12px;">SKU: ${p?.sku || "—"}</div>
-                      </div>
-                      <div style="font-weight:950;color:#0f172a;">Qtd: ${Number(it.qty||0)}</div>
-                    </div>
-                  `;
-                }).join("") : `<div style="color:#64748b;font-weight:800;">Sem itens.</div>`
-              }
-            </div>
-          `);
-          return;
-        }
-
-        // PERDA / AJUSTE (detalhado)
-        const p = byProdId.get(String(m.productId || "")) || null;
-        const img = p?.imageData || "";
-
-        const isAdjust =
-          reason === "adjust" || reason === "ajuste" || reason === "adjustment" ||
-          (reason === "inventory" && type === "ADJUST_FINAL");
-
-        const title = isAdjust ? "Ajuste" : "Perda";
-
-        openModal(title, `
-          <div style="color:#334155;font-weight:900;">
-            <div><b>${title}</b> • ${when}</div>
-            <div style="margin-top:6px;">Por: <b>${who}</b></div>
-          </div>
-
-          <div class="hr" style="margin:12px 0;"></div>
-
-          <div style="
-            display:grid;
-            grid-template-columns:64px 1fr;
-            gap:12px;
-            align-items:center;
-            border:1px solid rgba(15,23,42,.08);
-            background:rgba(255,255,255,.92);
-            border-radius:18px;
-            padding:10px;
-          ">
-            <div style="
-              width:64px;height:64px;border-radius:18px;overflow:hidden;
-              border:1px solid rgba(15,23,42,.08);
-              background:rgba(148,163,184,.14);
-              display:grid;place-items:center;
-            ">
-              ${thumb(img)}
-            </div>
-            <div>
-              <div style="font-weight:950;color:#0f172a;">${p?.name || "—"}</div>
-              <div style="color:#64748b;font-weight:800;font-size:12px;">SKU: ${p?.sku || "—"}</div>
-              <div style="margin-top:6px;font-weight:950;color:#0f172a;">Qtd: ${Number(m.qty||0)}</div>
-            </div>
-          </div>
-
-          ${m.note ? `<div style="margin-top:10px;color:#64748b;font-weight:800;">Obs: ${String(m.note)}</div>` : ``}
-        `);
-      });
-    });
+    return `<div style="font-weight:950;color:#94a3b8;">IMG</div>`;
   }
 
+  function moveColor(type){
+    if (type === "compra") return "#16a34a";
+    if (type === "perda") return "#ef4444";
+    if (type === "ajuste") return "#0ea5e9";
+    return "#0f172a";
+  }
 
-  estDate?.addEventListener("change", draw);
+  function signedText(type, qty){
+    const n = Number(qty || 0);
+    if (type === "compra") return `+${n}`;
+    if (type === "perda") return `-${n}`;
+    if (type === "ajuste") return `±${n}`;
+    return String(n);
+  }
 
-  draw();
+  async function draw(){
+    try{
+      const startISO = startOfDayISO(eStart.value);
+      const endISO = nextDayStartISO(eEnd.value);
+      const selectedType = eType.value;
+
+      let query = sb
+        .from("v_stock_moves_ledger")
+        .select("*")
+        .gte("created_at", startISO)
+        .lt("created_at", endISO)
+        .order("created_at", { ascending: false });
+
+      if (selectedType !== "all"){
+        query = query.eq("move_type", selectedType);
+      }
+
+      const { data, error } = await query;
+
+      if (error){
+        console.error("[ESTOQUE] erro query:", error);
+        alert("Erro ao carregar movimentações do estoque.");
+        return;
+      }
+
+      const rows = Array.isArray(data) ? data : [];
+
+      const headers = ["Data", "Hora", "Tipo", "Produto", "SKU", "Qtd", "Obs"];
+      const exportRows = rows.map(r => {
+        const d = new Date(r.created_at);
+        return [
+          d.toLocaleDateString("pt-BR"),
+          d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+          r.move_type || "",
+          r.product_name || "Produto",
+          r.product_sku || "",
+          Number(r.qty || 0),
+          r.note || ""
+        ];
+      });
+
+      document.getElementById("btnExportCSV").onclick = () => {
+        downloadCSV(
+          `estoque_${eStart.value}_${eEnd.value}`,
+          headers,
+          exportRows
+        );
+      };
+
+      document.getElementById("btnExportPDF").onclick = () => {
+        openPrintPDF(
+          "Estoque",
+          `Período: ${eStart.value} até ${eEnd.value}${selectedType !== "all" ? ` • Tipo: ${selectedType}` : ""}`,
+          headers,
+          exportRows
+        );
+      };
+
+      if (!rows.length){
+        eList.innerHTML = `<div style="color:#64748b;font-weight:800;">Sem movimentações no período.</div>`;
+        return;
+      }
+
+      eList.innerHTML = rows.map(r => {
+        const date = new Date(r.created_at);
+        const type = String(r.move_type || "").toLowerCase();
+        const color = moveColor(type);
+
+        return `
+          <div class="r-row" style="cursor:default;">
+            <div style="display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;">
+              <div style="
+                width:56px;height:56px;border-radius:16px;overflow:hidden;
+                border:1px solid rgba(15,23,42,.08);
+                background:rgba(148,163,184,.14);
+                display:grid;place-items:center;
+              ">
+                ${thumb(r.product_image)}
+              </div>
+
+              <div style="min-width:0;">
+                <div class="t" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                  <span style="color:${color};font-weight:950;text-transform:capitalize;">${type}</span>
+                  ${r.product_name ? ` • ${r.product_name}` : ` • Produto`}
+                </div>
+
+                <div class="m">
+                  SKU: <b>${r.product_sku || "—"}</b>
+                  • ${date.toLocaleDateString("pt-BR")}
+                  ${date.toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" })}
+                  ${r.note ? ` • ${r.note}` : ""}
+                </div>
+              </div>
+
+              <div style="font-weight:950;color:${color};white-space:nowrap;">
+                ${signedText(type, r.qty)}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+    } catch(err){
+      console.error("[ESTOQUE] erro draw:", err);
+      alert(err?.message || String(err));
+    }
+  }
+
+  btnEApply.onclick = draw;
+  await draw();
 }
-
 
 // ===== CUPONS =====
 function calcSaleSubtotal(sale){
@@ -2636,7 +2722,8 @@ function renderCupons(){
   const cpList  = document.getElementById("cpList");
   const btnCpApply = document.getElementById("btnCpApply");
 
-  function draw(){
+  async function draw(){
+  try{
     const s = parseDateInput(cpStart.value) || start;
     const e = parseDateInput(cpEnd.value) || end;
     e.setHours(23,59,59,999);
@@ -2677,13 +2764,16 @@ function renderCupons(){
         openCupomModal(code, data);
       });
     });
+    } catch(err){
+    console.error(err);
+    alert(err?.message || String(err));
   }
-
-  btnCpApply.addEventListener("click", draw);
-  draw();
+}
+  btnCpApply.onclick = draw;
+draw();
 }
 
-function renderContasPagar(){
+async function renderContasPagar(){
   
 
   content.innerHTML = `
@@ -2763,7 +2853,8 @@ const calHint  = document.getElementById("apCalHint");
 let calYear = (new Date()).getFullYear();
 let calMonth = (new Date()).getMonth(); // 0-11
 let selectedISO = ""; // filtro por dia (opcional)
-
+await loadAPCats();
+await loadAP();
 
   function inRangeDue(item, s, e){
     const d = parseISODate(item.dueDate);
@@ -3015,7 +3106,7 @@ function closeCatDropdown(){
 function openCatDropdown(){
   closeCatDropdown();
 
-  const cats = loadAPCats();
+  const cats = apCategoriesCache;
   const rect = catInput.getBoundingClientRect();
 
   catDropEl = document.createElement("div");
@@ -3027,7 +3118,7 @@ function openCatDropdown(){
   catDropEl.innerHTML = `
     <div class="ap-cat-drop-inner">
       ${cats.map(c => `
-        <button type="button" class="ap-cat-pick" data-cat="${escHtml(c)}">${escHtml(c)}</button>
+        <button type="button" class="ap-cat-pick" data-cat="${escHtml(c.name)}">${escHtml(c.name)}</button>
       `).join("")}
     </div>
   `;
@@ -3036,7 +3127,7 @@ function openCatDropdown(){
 
   catDropEl.querySelectorAll(".ap-cat-pick").forEach(btn=>{
     btn.addEventListener("click", ()=>{
-      catInput.value = btn.getAttribute("data-cat") || "Geral";
+      catInput.value = btn.getAttribute("data-cat") || "";
       closeCatDropdown();
     });
   });
@@ -3054,22 +3145,23 @@ function openCatDropdown(){
 }
 
 function renderCatManager(){
-  const cats = loadAPCats();
+  const cats = apCategoriesCache;
 
   mgrList.innerHTML = cats.map(c => `
     <div class="ap-cat-row">
-      <div class="ap-cat-name">${escHtml(c)}</div>
-      <button type="button" class="r-btn ap-cat-trash" data-del="${escHtml(c)}">🗑</button>
-
+      <div class="ap-cat-name">${escHtml(c.name)}</div>
+      <button type="button" class="r-btn ap-cat-trash" data-del="${c.id}">🗑</button>
     </div>
   `).join("");
 
   mgrList.querySelectorAll(".ap-cat-trash").forEach(btn=>{
-    btn.addEventListener("click", ()=>{
-      const del = btn.getAttribute("data-del");
-      const cur = loadAPCats().filter(x => x !== del);
-      saveAPCats(cur);
-     if (catInput.value === del) catInput.value = "";
+    btn.addEventListener("click", async ()=>{
+      const delId = btn.getAttribute("data-del");
+      await window.APCategoriesStore.remove(delId);
+      await loadAPCats();
+
+      const stillExists = apCategoriesCache.some(c => c.name === catInput.value);
+      if (!stillExists) catInput.value = "";
 
       renderCatManager();
     });
@@ -3105,13 +3197,12 @@ mgr.addEventListener("click", (e)=>{
   if (e.target === mgr) closeCatManager();
 });
 
-mgrCreate.addEventListener("click", ()=>{
+mgrCreate.addEventListener("click", async ()=>{
   const n = String(mgrNewName.value || "").trim();
   if (!n) return;
 
-  const cats = loadAPCats();
-  if (!cats.includes(n)) cats.push(n);
-  saveAPCats(cats);
+  await window.APCategoriesStore.create({ name: n });
+  await loadAPCats();
 
   catInput.value = n;
   renderCatManager();
@@ -3187,8 +3278,8 @@ amtInp.addEventListener("input", renderInstallmentsPreview);
 renderInstallmentsPreview();
 
 
-    const btnSave = document.getElementById("apSave");
-    btnSave.onclick = () => {
+ const btnSave = document.getElementById("apSave");
+btnSave.onclick = async () => {
   const title = document.getElementById("apFTitle").value.trim();
   const category = document.getElementById("apFCategory").value.trim();
   const supplier = document.getElementById("apFSupplier").value.trim();
@@ -3201,57 +3292,47 @@ renderInstallmentsPreview();
     alert("Preencha descrição e vencimento.");
     return;
   }
+
   if (amountTotal <= 0){
     alert("Informe um valor maior que zero.");
     return;
   }
 
-  const list = loadAP();
   const nowIso = new Date().toISOString();
 
-  // 🔥 sem status no cadastro: nasce sempre pendente
   const base = {
-    title,
-    category,
-    supplier,
-    notes,
-    updatedAt: nowIso,
-    status: "pending",
-    paidAt: "",
-    paidMethod
-  };
+  title,
+  category,
+  supplier,
+  notes,
+  paidMethod,
+  status: isEdit ? (x.status || "pending") : "pending",
+  paidAt: isEdit ? (x.paidAt || "") : ""
+};
 
   const isInstall = (paidMethod === "boleto" || paidMethod === "card");
   const inst = Math.max(1, Math.min(24, Number(document.getElementById("apFInst")?.value || 1)));
 
-  // EDIT: mantém simples (edita 1 registro)
   if (isEdit){
-    const payload = {
+    await window.APPayablesStore.update(x.id, {
       ...x,
       ...base,
       amount: amountTotal,
       dueDate
-    };
+    });
 
-    const idx = list.findIndex(i => i.id === x.id);
-    if (idx >= 0) list[idx] = payload;
-    else list.push(payload);
-
-    saveAP(list);
+    await loadAP();
     closeModal();
-    draw();
+    await draw();
     return;
   }
 
-  // CREATE: se boleto/cartão e parcelas > 1, cria N lançamentos
   if (isInstall && inst > 1){
     const groupId = uid();
     const parts = splitAmount(amountTotal, inst);
 
     for (let i=0; i<inst; i++){
-      list.push({
-        id: uid(),
-        createdAt: nowIso,
+      await window.APPayablesStore.create({
         ...base,
         title: `${title} (${i+1}/${inst})`,
         amount: parts[i],
@@ -3262,51 +3343,44 @@ renderInstallmentsPreview();
       });
     }
   } else {
-    list.push({
-      id: uid(),
-      createdAt: nowIso,
+    await window.APPayablesStore.create({
       ...base,
       amount: amountTotal,
       dueDate
     });
   }
 
-  saveAP(list);
+  await loadAP();
   closeModal();
-  draw();
+  await draw();
 };
 
 
     if (isEdit){
-      const btnDel = document.getElementById("apDelete");
-      btnDel.onclick = () => {
-        const list = loadAP().filter(i => i.id !== x.id);
-        saveAP(list);
-        closeModal();
-        draw();
-      };
-    }
+  const btnDel = document.getElementById("apDelete");
+  btnDel.onclick = async () => {
+    await window.APPayablesStore.remove(x.id);
+    await loadAP();
+    closeModal();
+    await draw();
+  };
+}
   }
 
-  function setPaid(id, isPaid){
-  const list = loadAP();
-  const idx = list.findIndex(i => i.id === id);
-  if (idx < 0) return;
+  async function setPaid(id, isPaid){
+  const item = apPayablesCache.find(i => i.id === id);
+  if (!item) return;
 
   const nowIso = new Date().toISOString();
 
-  if (isPaid){
-    list[idx].status = "paid";
-    list[idx].paidAt = nowIso;
-  } else {
-    // volta a ser pendente
-    list[idx].status = "pending";
-    list[idx].paidAt = "";
-  }
+  await window.APPayablesStore.update(id, {
+    ...item,
+    status: isPaid ? "paid" : "pending",
+    paidAt: isPaid ? nowIso : ""
+  });
 
-  list[idx].updatedAt = nowIso;
-  saveAP(list);
-  draw(); // re-render geral
+  await loadAP();
+  await draw();
 }
 
 
@@ -3387,8 +3461,9 @@ function sortRecentPastThenFuture(a, b){
   return (da?.getTime()||0) - (db?.getTime()||0);
 }
 
-function draw(){
-  const all = loadAP();
+async function draw(){
+  try{
+  const all = await loadAP();
 
   // 1) Calendário sempre mostra o mês atual selecionado
   drawCalendar(all);
@@ -3427,9 +3502,9 @@ function draw(){
 const { s: ms, e: me } = monthRange(calYear, calMonth);
 const paidMonth = all.filter(x => {
   if (apStatus(x) !== "paid") return false;
-  const due = parseISODate(x.dueDate);
-  if (!due) return false;
-  return due.getTime() >= ms.getTime() && due.getTime() <= me.getTime();
+  const paid = parseISODate(x.paidAt || x.dueDate);
+  if (!paid) return false;
+  return paid.getTime() >= ms.getTime() && paid.getTime() <= me.getTime();
 });
 
 document.getElementById("kApPaidMonth").textContent = moneyBR(sum(paidMonth));
@@ -3507,7 +3582,7 @@ document.getElementById("kApPaidMonth").textContent = moneyBR(sum(paidMonth));
     if (ev.target && (ev.target.classList?.contains("ap-paid-toggle") || ev.target.closest?.("label"))) return;
 
     const id = el.getAttribute("data-id");
-    const item = loadAP().find(i=> i.id === id);
+    const item = apPayablesCache.find(i => i.id === id);
     if (!item) return;
     openCreateModal(item, { viewOnly: true });
 
@@ -3550,13 +3625,19 @@ apListEl.querySelectorAll(".ap-paid-toggle").forEach(chk=>{
   };
 
   document.getElementById("apExportPDF").onclick = ()=>{
-    const sub = selectedISO ? `Dia: ${selectedISO.split("-").reverse().join("/")}` : `Mês: ${formatMonthTitle(calYear, calMonth)}`;
-    openPrintPDF("Contas a pagar", sub, headers, rows);
-  };
+  const sub = selectedISO
+    ? `Dia: ${selectedISO.split("-").reverse().join("/")}`
+    : `Mês: ${formatMonthTitle(calYear, calMonth)}`;
+
+  openPrintPDF("Contas a pagar", sub, headers, rows);
+};
+
+} catch(err){
+  console.error(err);
+  alert(err?.message || String(err));
 }
-
-
-  apAdd.onclick = ()=> openCreateModal(null);
+}
+apAdd.onclick = ()=> openCreateModal(null);
 
 calPrev.onclick = () => {
   calMonth--;
@@ -3577,7 +3658,7 @@ calClear.onclick = () => {
   draw();
 };
 
-draw();
+await draw();
 
 }
 

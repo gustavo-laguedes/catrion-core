@@ -140,7 +140,28 @@
         <input type="password" id="adminPass" placeholder="••••••••" />
       </label>
 
-      <div class="modal-actions">
+      <div class="admin-warning hidden" id="adminWarningBox">
+        <div class="admin-warning-title">Atenção antes de continuar</div>
+
+        <div class="admin-warning-text">
+          Alterações feitas no modo edição podem impactar diretamente os valores do caixa,
+          entradas e saídas registradas, vendas vinculadas ao período, relatórios do sistema
+          e também movimentações de estoque relacionadas às operações.
+        </div>
+
+        <div class="admin-warning-text">
+          Utilize essa função somente quando tiver certeza da mudança a ser realizada.
+          Exclusões e edições indevidas podem comprometer a conferência financeira e a
+          consistência dos dados operacionais.
+        </div>
+
+        <div class="admin-warning-actions">
+          <button class="btn danger" id="adminAware">Estou ciente</button>
+          <button class="btn" id="adminDismiss">Fechar</button>
+        </div>
+      </div>
+
+      <div class="modal-actions" id="adminPasswordActions">
         <button class="btn" id="adminCancel">Cancelar</button>
         <button class="btn primary" id="adminConfirm">Confirmar</button>
       </div>

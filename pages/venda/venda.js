@@ -102,15 +102,6 @@ function renderCustomerManager(list){
 `).join("");
 
 
-  custManageList.querySelectorAll("[data-del]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const id = btn.getAttribute("data-del");
-      customers = customers.filter(c => c.id !== id);
-      saveCustomers(customers);
-      renderCustomerManager(customers);
-      clearCustomer();
-    });
-  });
 
   custManageList.querySelectorAll("[data-edit]").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -134,24 +125,31 @@ function renderCustomerManager(list){
 });
 
 custManageList.querySelectorAll("[data-del]").forEach(btn => {
-  btn.addEventListener("click", () => {
+  btn.addEventListener("click", async () => {
     const id = btn.getAttribute("data-del");
-    customers = customers.filter(c => c.id !== id);
-    saveCustomers(customers);
+    if (!id) return;
 
-    // se apagou o que estava editando, reseta
-    if (editingCustomerId === id) setCustomerFormMode("create");
+    const ok = confirm("Deseja realmente excluir este cliente?");
+    if (!ok) return;
 
-    // se apagou o cliente selecionado na venda, limpa
-    if (selectedCustomer?.id === id) clearCustomer();
+    try{
+      await window.CustomersStore.remove(id);
+      await loadCustomers();
 
-    renderCustomerManager(customers);
+      if (editingCustomerId === id) setCustomerFormMode("create");
+      if (selectedCustomer?.id === id) clearCustomer();
+
+      renderCustomerManager(customers);
+    }catch(err){
+      console.error("[VENDA] Erro ao excluir cliente:", err);
+      alert("Não foi possível excluir o cliente.");
+    }
   });
 });
 
 }
 
-custManageSearch.addEventListener("input", () => {
+custManageSearch?.addEventListener("input", () => {
   const q = custManageSearch.value.toLowerCase().trim();
 
   const filtered = customers.filter(c =>
@@ -536,126 +534,242 @@ btnSaleDonePrint?.addEventListener("click", ()=>{
 
 });
 
+function getRateConfig(machineRaw, key){
+  const raw = machineRaw?.rates?.[key];
 
-
-const CUSTOMERS_KEY = "core.customers.v1";
-
-function loadMachinesForSelect(){
-  // novo padrão do Core (config atual)
-  let list = [];
-  try { list = JSON.parse(localStorage.getItem("core_machines") || "[]"); } catch(e){}
-
-  // fallback do padrão antigo
-  if (!Array.isArray(list) || list.length === 0){
-    try { list = JSON.parse(localStorage.getItem("machines") || "[]"); } catch(e){}
+  if (raw && typeof raw === "object"){
+    return {
+      enabled: raw.enabled !== false,
+      rate: Number(raw.rate || 0)
+    };
   }
 
-  // normaliza
+  return {
+    enabled: raw !== undefined,
+    rate: Number(raw || 0)
+  };
+}
+
+function machineSupportsDebit(machineRaw){
+  const deb = getRateConfig(machineRaw, "debito");
+  return !!deb.enabled;
+}
+
+function machineSupportsCredit(machineRaw){
+  for (let i = 1; i <= 12; i++){
+    const cfg = getRateConfig(machineRaw, String(i));
+    if (cfg.enabled) return true;
+  }
+  return false;
+}
+
+function getEnabledInstallments(machineRaw){
   const out = [];
-  (list || []).forEach((m, idx) => {
-    const name = m.name || m.nome || `Maquininha ${idx+1}`;
-    out.push({ id: String(idx), name, raw: m });
-  });
+  for (let i = 1; i <= 12; i++){
+    const cfg = getRateConfig(machineRaw, String(i));
+    if (cfg.enabled) out.push(i);
+  }
   return out;
 }
+
+function getSelectedMachineRaw(){
+  const machineId = cardMachineSelect?.value || "";
+  const picked = machinesSelectCache.find(m => String(m.id) === String(machineId));
+  return picked?.raw || null;
+}
+
+function getMachinesForMethod(method){
+  if (method === "debit"){
+    return machinesSelectCache.filter(m => machineSupportsDebit(m.raw));
+  }
+
+  if (method === "credit"){
+    return machinesSelectCache.filter(m => machineSupportsCredit(m.raw));
+  }
+
+  return [];
+}
+
+
+let machinesSelectCache = [];
+
+async function loadMachinesForSelect(){
+  try{
+    if (!window.MachinesStore?.list){
+      console.warn("[VENDA] MachinesStore não encontrado.");
+      machinesSelectCache = [];
+      fillMachineSelect([]);
+      return machinesSelectCache;
+    }
+
+    const list = await window.MachinesStore.list({
+      limit: 1000,
+      orderBy: "name",
+      ascending: true
+    });
+
+    machinesSelectCache = (list || []).map(m => ({
+      id: String(m.id),
+      name: m.name || "Maquininha",
+      raw: m
+    }));
+
+    fillMachineSelect(machinesSelectCache);
+    return machinesSelectCache;
+  }catch(err){
+    console.error("[VENDA] Erro ao carregar maquininhas:", err);
+    machinesSelectCache = [];
+    fillMachineSelect([]);
+    return machinesSelectCache;
+  }
+}
+
+function fillMachineSelect(list){
+  if (!cardMachineSelect) return;
+
+  const options = ['<option value="">Selecione a maquininha</option>'];
+
+  (list || []).forEach(m => {
+    options.push(`<option value="${m.id}">${m.name}</option>`);
+  });
+
+  cardMachineSelect.innerHTML = options.join("");
+
+  if (!list || !list.length){
+    cardMachineSelect.value = "";
+  }
+}
+
+function fillInstallmentsSelect(installmentsList = [1]){
+  if (!cardInstallmentsSelect) return;
+
+  const list = Array.isArray(installmentsList) && installmentsList.length
+    ? installmentsList
+    : [1];
+
+  const options = list.map(i => `<option value="${i}">${i}x</option>`);
+
+  cardInstallmentsSelect.innerHTML = options.join("");
+  cardInstallmentsSelect.value = String(list[0]);
+}
+
+function refreshInstallmentsByMachine(){
+  if (!cardInstallmentsSelect || !cardInstallmentsField || !cardOptionsHint) return;
+
+  const machineRaw = getSelectedMachineRaw();
+
+  if (!machineRaw){
+    fillInstallmentsSelect([1]);
+    cardOptionsHint.textContent = "Selecione a maquininha e a quantidade de parcelas.";
+    return;
+  }
+
+  const enabledInstallments = getEnabledInstallments(machineRaw);
+
+  if (!enabledInstallments.length){
+    fillInstallmentsSelect([1]);
+    cardOptionsHint.textContent = "Esta maquininha não possui parcelas habilitadas.";
+    return;
+  }
+
+  fillInstallmentsSelect(enabledInstallments);
+
+  const maxInstallment = enabledInstallments[enabledInstallments.length - 1];
+  cardOptionsHint.textContent =
+    enabledInstallments.length === 1
+      ? `Esta maquininha permite somente ${enabledInstallments[0]}x.`
+      : `Parcelamento disponível até ${maxInstallment}x nesta maquininha.`;
+}
+
+function refreshCardOptionsUI(method){
+  if (!cardOptions || !cardMachineSelect || !cardInstallmentsField || !cardInstallmentsSelect || !cardOptionsHint){
+    return;
+  }
+
+  const isDebit = method === "debit";
+  const isCredit = method === "credit";
+  const isCard = isDebit || isCredit;
+
+  cardOptions.classList.toggle("hidden", !isCard);
+
+  if (!isCard){
+    fillMachineSelect([]);
+    fillInstallmentsSelect([1]);
+    cardInstallmentsField.classList.add("hidden");
+    cardOptionsHint.textContent = "Selecione Crédito ou Débito para escolher a maquininha.";
+    return;
+  }
+
+  const availableMachines = getMachinesForMethod(method);
+  fillMachineSelect(availableMachines);
+
+  if (isDebit){
+    fillInstallmentsSelect([1]);
+    cardInstallmentsField.classList.add("hidden");
+
+    if (!availableMachines.length){
+      cardOptionsHint.textContent = "Nenhuma maquininha habilitada para débito.";
+    } else {
+      cardOptionsHint.textContent = "Selecione a maquininha para pagamento no débito.";
+    }
+
+    return;
+  }
+
+  // crédito
+  cardInstallmentsField.classList.remove("hidden");
+
+  if (!availableMachines.length){
+    fillInstallmentsSelect([1]);
+    cardOptionsHint.textContent = "Nenhuma maquininha habilitada para crédito.";
+    return;
+  }
+
+  refreshInstallmentsByMachine();
+}
+
 
 function round2(n){
   return Math.round((Number(n || 0) + Number.EPSILON) * 100) / 100;
 }
 
-function pctToValue(amount, pct){
-  const a = Number(amount || 0);
-  const p = Number(pct || 0);
-  return round2(a * (p / 100));
+function pctToValue(amount, percent){
+  return round2(Number(amount || 0) * (Number(percent || 0) / 100));
 }
 
-function getMachineRatePercent(machineRaw, method, installments){
-  // machineRaw vem do localStorage core_machines (do app.js)
-  // formato esperado: { name, rates: { debito: 0.94, "1":2.53, "2":3.49 ... } }
-  const rates = machineRaw?.rates || machineRaw?.taxas || {};
-
+function getMachineRatePercent(machineRaw, method, installments = 1){
   if (method === "debit"){
-    // tenta várias chaves por segurança
-    return Number(
-      rates.debito ?? rates.debit ?? rates["debito"] ?? rates["debit"] ?? 0
-    ) || 0;
+    return getRateConfig(machineRaw, "debito").rate;
   }
 
-  // crédito
   const key = String(Number(installments || 1));
-  return Number(rates[key] ?? rates[`credit_${key}`] ?? 0) || 0;
+  return getRateConfig(machineRaw, key).rate;
 }
 
 
+let customers = [];
 
-function fillInstallmentsSelect(max=12){
-  cardInstallmentsSelect.innerHTML = "";
-  for (let i=1;i<=max;i++){
-    const opt = document.createElement("option");
-    opt.value = String(i);
-    opt.textContent = `${i}x`;
-    cardInstallmentsSelect.appendChild(opt);
-  }
-  cardInstallmentsSelect.value = "1";
-}
+async function loadCustomers(){
+  try{
+    if (!window.CustomersStore?.list){
+      console.warn("[VENDA] CustomersStore não encontrado.");
+      customers = [];
+      return customers;
+    }
 
-function refreshCardOptionsUI(selectedMethod){
-  const isDebit = selectedMethod === "debit";
-  const isCredit = selectedMethod === "credit";
-  const isCard = isDebit || isCredit;
-
-  // mostra/esconde bloco todo
-  cardOptions.classList.toggle("hidden", !isCard);
-
-  // sempre reseta parcelas
-  cardInstallmentsField.classList.add("hidden");
-  cardInstallmentsSelect.disabled = true;
-
-  if (!isCard) return;
-
-  // Débito: só maquininha
-  // Crédito: maquininha + parcelas
-  if (isCredit){
-    cardInstallmentsField.classList.remove("hidden");
-    cardInstallmentsSelect.disabled = false;
-    fillInstallmentsSelect(12);
-  }
-
-  // carrega maquininhas
-  const machines = loadMachinesForSelect();
-  cardMachineSelect.innerHTML = "";
-
-  if (!machines.length){
-    const opt = document.createElement("option");
-    opt.value = "";
-    opt.textContent = "Nenhuma maquininha cadastrada";
-    cardMachineSelect.appendChild(opt);
-    cardOptionsHint.textContent = "Cadastre uma maquininha na engrenagem antes de usar Crédito/Débito.";
-  } else {
-    machines.forEach(m => {
-      const opt = document.createElement("option");
-      opt.value = m.id;
-      opt.textContent = m.name;
-      cardMachineSelect.appendChild(opt);
+    customers = await window.CustomersStore.list({
+      limit: 1000,
+      orderBy: "name",
+      ascending: true
     });
-    cardMachineSelect.value = machines[0].id;
-    cardOptionsHint.textContent = "";
+
+    return customers;
+  }catch(err){
+    console.error("[VENDA] Erro ao carregar clientes:", err);
+    customers = [];
+    return customers;
   }
 }
-
-
-
-function loadCustomers(){
-  const raw = localStorage.getItem(CUSTOMERS_KEY);
-  return raw ? JSON.parse(raw) : [];
-}
-
-
-function saveCustomers(list){
-  localStorage.setItem(CUSTOMERS_KEY, JSON.stringify(list || []));
-}
-
-let customers = loadCustomers();
 
 
 
@@ -720,21 +834,22 @@ function clearCustomer(){
   // log("SALE_CUSTOMER_CLEAR", {});
 }
 
-function openCustomerModal(){
+async function openCustomerModal(){
   customerModal.classList.remove("hidden");
 
-  // opcional: se o cara já digitou algo na busca, joga no nome
   const q = (custSearch.value || "").trim();
   custNewName.value = q;
   custNewPhone.value = "";
   custNewDoc.value = "";
   custNewNotes.value = "";
 
-  setTimeout(() => custNewName.focus(), 50);
   setCustomerFormMode("create");
-  renderCustomerManager(customers);
-custManageSearch.value = "";
+  custManageSearch.value = "";
 
+  await loadCustomers();
+  renderCustomerManager(customers);
+
+  setTimeout(() => custNewName.focus(), 50);
 }
 
 function setCustomerFormMode(mode){
@@ -753,7 +868,8 @@ function closeCustomerModal(){
   customerModal.classList.add("hidden");
 }
 
-function saveNewCustomer(){
+
+async function saveNewCustomer(){
   const name  = (custNewName.value || "").trim();
   const phone = (custNewPhone.value || "").trim();
   const doc   = (custNewDoc.value || "").trim();
@@ -765,55 +881,49 @@ function saveNewCustomer(){
     return;
   }
 
-  // ✅ EDITANDO
-  if (editingCustomerId){
-    const idx = customers.findIndex(c => c.id === editingCustomerId);
-    if (idx >= 0){
-      customers[idx] = {
-        ...customers[idx],
+  try{
+    // EDITANDO
+    if (editingCustomerId){
+      const updated = await window.CustomersStore.update(editingCustomerId, {
         name, phone, doc, notes
-      };
-      saveCustomers(customers);
+      });
 
-      // se estava selecionado na venda, atualiza referência
+      await loadCustomers();
+
       if (selectedCustomer?.id === editingCustomerId){
-        selectedCustomer = customers[idx];
-        custSelectedName.textContent = selectedCustomer.name;
+        selectedCustomer = updated;
+        custSelectedName.textContent = updated.name;
       }
 
       renderCustomerManager(customers);
 
-      // volta para modo criação e limpa campos
       setCustomerFormMode("create");
       custNewName.value = "";
       custNewPhone.value = "";
       custNewDoc.value = "";
       custNewNotes.value = "";
+
       return;
     }
+
+    // CRIANDO
+    const created = await window.CustomersStore.create({
+      name, phone, doc, notes
+    });
+
+    await loadCustomers();
+    renderCustomerManager(customers);
+
+    selectCustomer(created);
+    closeCustomerModal();
+  }catch(err){
+    console.error("[VENDA] Erro ao salvar cliente:", err);
+    alert("Não foi possível salvar o cliente.");
   }
-
-  // ✅ CRIANDO
-  const id = `c_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`;
-  const newCust = { id, name, phone, doc, notes };
-
-  customers.unshift(newCust);
-  saveCustomers(customers);
-
-  renderCustomerManager(customers);
-
-  // limpa campos e mantém em modo criação
-  setCustomerFormMode("create");
-  custNewName.value = "";
-  custNewPhone.value = "";
-  custNewDoc.value = "";
-  custNewNotes.value = "";
 }
 
 
-
-
-custSearch.addEventListener("input", ()=>{
+custSearch?.addEventListener("input", ()=>{
   const q = custSearch.value.trim().toLowerCase();
   if (q.length < 1){
     hideCustomerDropdown();
@@ -829,7 +939,7 @@ custSearch.addEventListener("input", ()=>{
   showCustomerDropdown(filtered);
 });
 
-custSearch.addEventListener("focus", ()=>{
+custSearch?.addEventListener("focus", ()=>{
   const q = custSearch.value.trim().toLowerCase();
   if (q.length >= 1){
     const filtered = customers.filter(c => c.name.toLowerCase().includes(q));
@@ -837,43 +947,48 @@ custSearch.addEventListener("focus", ()=>{
   }
 });
 
-btnClearCustomer.addEventListener("click", clearCustomer);
+btnClearCustomer?.addEventListener("click", clearCustomer);
 
 if (btnAddCustomer){
-  btnAddCustomer.addEventListener("click", (e) => {
+  btnAddCustomer.addEventListener("click", async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    openCustomerModal();
+    await openCustomerModal();
   });
 }
 
 
-btnCustCancel.addEventListener("click", closeCustomerModal);
-btnCustSave.addEventListener("click", saveNewCustomer);
+btnCustCancel?.addEventListener("click", closeCustomerModal);
+btnCustSave?.addEventListener("click", async () => {
+  await saveNewCustomer();
+});
 
 // fecha modal clicando fora
-customerModal.addEventListener("click", (e) => {
+customerModal?.addEventListener("click", (e) => {
   if (e.target === customerModal) closeCustomerModal();
 });
 
 // Enter no modal salva
-[custNewName, custNewPhone, custNewDoc, custNewNotes].forEach(inp => {
-  inp.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      saveNewCustomer();
-    }
-    if (e.key === "Escape") {
-      e.preventDefault();
-      closeCustomerModal();
-    }
+[custNewName, custNewPhone, custNewDoc, custNewNotes]
+  .filter(Boolean)
+  .forEach(inp => {
+    inp.addEventListener("keydown", async (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        await saveNewCustomer();
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeCustomerModal();
+      }
+    });
   });
-});
 
 
 // fecha dropdown clicando fora
-document.addEventListener("click", (e)=>{
+document.addEventListener("click", (e) => {
   const picker = document.getElementById("customerPicker");
+  if (!picker) return; // ✅ fora da tela (ou elemento não montado ainda)
   if (!picker.contains(e.target)) hideCustomerDropdown();
 });
 
@@ -902,151 +1017,43 @@ function mapProductForSale(p){
   };
 }
 
-function repoFind(q){
-  const KEY = "core.products.v1";
+// =========================
+// Fonte oficial: Supabase (cache em memória)
+// =========================
+let PRODUCTS_RAW = [];
+let PRODUCTS_BY_ID = new Map();
 
-  const hasRepo = !!window.CoreProductsRepo;
-  const hasCoreStorage = !!window.CoreStorage;
-
-  let repoCount = -1;
-  let storageCount = -1;
-  let localCount = -1;
-
-  // CoreProductsRepo
-  try {
-    repoCount = hasRepo ? (window.CoreProductsRepo.getAll()?.length || 0) : -1;
-  } catch {}
-
-  // CoreStorage (o mesmo que Produtos usa)
-  try {
-    if (hasCoreStorage?.get) {
-      const v = window.CoreStorage.get(KEY, []);
-      storageCount = Array.isArray(v) ? v.length : -2; // -2 = não é array
-    } else if (hasCoreStorage) {
-      // se CoreStorage existir mas não tiver .get
-      storageCount = -3;
-    }
-  } catch {}
-
-  // localStorage direto (pra comparação)
-  try {
-    const raw = localStorage.getItem(KEY);
-    const v = raw ? JSON.parse(raw) : [];
-    localCount = Array.isArray(v) ? v.length : -2;
-  } catch {}
-
-  // Se não tiver repo ou não tiver dado, mostra debug no UI
-  const showDebug = () => {
-    resultsEl.innerHTML = `
-      <div style="padding:12px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;">
-        <div style="font-weight:900;margin-bottom:6px;">DEBUG Produtos na Venda</div>
-        <div style="font-size:12px;line-height:1.4;">
-          <div>CoreProductsRepo carregado? <b>${hasRepo}</b></div>
-          <div>CoreStorage carregado? <b>${!!hasCoreStorage}</b></div>
-          <div>KEY: <code>${KEY}</code></div>
-          <hr style="border:none;border-top:1px solid #e5e7eb;margin:8px 0;">
-          <div>Repo.getAll().length: <b>${repoCount}</b></div>
-          <div>CoreStorage.get(KEY).length: <b>${storageCount}</b></div>
-          <div>localStorage[KEY].length: <b>${localCount}</b></div>
-          <hr style="border:none;border-top:1px solid #e5e7eb;margin:8px 0;">
-          <div style="opacity:.8">Se Produtos mostra itens e aqui dá 0, então a Venda está lendo outro storage/origem.</div>
-        </div>
-      </div>
-    `;
-  };
-
-  if (!hasRepo || repoCount === 0) {
-    // se digitou algo e não acha nada, mostra debug
-    if (String(q || "").trim().length > 0) showDebug();
-  }
-
-  // se repo existe mas está vazio, tenta “forçar” via CoreStorage (mesmo storage do Produtos)
-  // isso garante que a Venda vai enxergar o que Produtos enxerga, mesmo se o repo falhar.
-  if (hasCoreStorage?.get) {
-    const all = window.CoreStorage.get(KEY, []);
-    if (Array.isArray(all) && all.length) {
-      return all
-        .filter(p => String(p.status || "active").toLowerCase() !== "inactive")
-        .filter(p => {
-          const s = String(q || "").trim().toLowerCase();
-          return !s ||
-            String(p.name || "").toLowerCase().includes(s) ||
-            String(p.sku || "").toLowerCase().includes(s);
-        })
-        .slice(0, 20)
-        .map(mapProductForSale);
-    }
-  }
-
-  // caminho padrão (repo)
-  if (!hasRepo) return [];
-  return window.CoreProductsRepo.findByQuery(q, 20).map(mapProductForSale);
+async function loadProductsCache(){
+  const list = await window.ProductsStore.list({ limit: 2000 });
+  PRODUCTS_RAW = Array.isArray(list) ? list : [];
+  PRODUCTS_BY_ID = new Map(PRODUCTS_RAW.map(p => [String(p.id), p]));
 }
 
+function repoFind(q){
+  const s = String(q || "").trim().toLowerCase();
+  if (!s) return [];
 
+  const out = [];
+
+  for (const p of PRODUCTS_RAW){
+    if (String(p.status || "active").toLowerCase() === "inactive") continue;
+
+    const name = String(p.name || "").toLowerCase();
+    const sku  = String(p.sku || "").toLowerCase();
+
+    if (name.includes(s) || sku.includes(s)){
+      out.push(mapProductForSale(p));
+      if (out.length >= 20) break;
+    }
+  }
+
+  return out;
+}
 
 function repoGetById(id){
-  const KEY = "core.products.v1";
-
-  // 1) repo normal
-  if (window.CoreProductsRepo?.getById){
-    const raw = window.CoreProductsRepo.getById(id);
-    if (raw) return mapProductForSale(raw);
-  }
-
-  // 2) fallback: CoreStorage direto
-  if (window.CoreStorage?.get){
-    const all = window.CoreStorage.get(KEY, []);
-    const raw = Array.isArray(all) ? all.find(p => String(p.id) === String(id)) : null;
-    return raw ? mapProductForSale(raw) : null;
-  }
-
-  return null;
+  const raw = PRODUCTS_BY_ID.get(String(id));
+  return raw ? mapProductForSale(raw) : null;
 }
-
-function decreaseStockSafe(productId, qty){
-  const KEY = "core.products.v1";
-  const q = Number(qty || 0);
-  if (!q || q <= 0) return;
-
-  // 1) se existir um método oficial no repo, usa
-  const repo = window.CoreProductsRepo;
-  if (repo && typeof repo.decreaseStock === "function"){
-    repo.decreaseStock(productId, q);
-    return;
-  }
-
-  // 2) fallback: mexe direto no storage (fonte de verdade hoje)
-  let list = [];
-  try {
-    if (window.CoreStorage?.get){
-      list = window.CoreStorage.get(KEY, []);
-    } else {
-      const raw = localStorage.getItem(KEY);
-      list = raw ? JSON.parse(raw) : [];
-    }
-  } catch(e){
-    list = [];
-  }
-
-  if (!Array.isArray(list) || !list.length) return;
-
-  const idx = list.findIndex(p => String(p.id) === String(productId));
-  if (idx < 0) return;
-
-  const cur = list[idx];
-  const curStock = Number(cur.stockOnHand || 0);
-  const nextStock = Math.max(curStock - q, 0);
-
-  list[idx] = { ...cur, stockOnHand: nextStock };
-
-  if (window.CoreStorage?.set){
-    window.CoreStorage.set(KEY, list);
-  } else {
-    localStorage.setItem(KEY, JSON.stringify(list));
-  }
-}
-
 
 
 
@@ -1408,7 +1415,7 @@ function openDiscount(){
   function selectSplitMethod(method, btn){
     selectedMethod = method;
 
-    payModal.querySelectorAll(".pay-btn").forEach(b => b.classList.remove("active"));
+    payModal?.querySelectorAll(".pay-btn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
 
     chipMethod.textContent = methodLabel(method);
@@ -1431,7 +1438,7 @@ function openDiscount(){
 
   }
 
-  function addSplit(){
+  async function addSplit(){
     if (!selectedMethod) return;
 
     const raw = Number(String(splitAmount.value || "0").replace(",", "."));
@@ -1453,20 +1460,40 @@ let machineName = null;
 let installments = 1;
 
 if (isCard){
-  const machines = loadMachinesForSelect();
+  const machines = machinesSelectCache.length
+    ? machinesSelectCache
+    : await loadMachinesForSelect();
+
   machineId = cardMachineSelect.value || null;
 
-  const picked = machines.find(x => x.id === machineId);
-  machineName = picked ? picked.name : null;
+  const picked = machines.find(x => String(x.id) === String(machineId));
+machineName = picked ? picked.name : null;
+const machineRaw = picked?.raw || null;
 
-  if (!machineId || !machineName){
-    alert("Cadastre/Selecione uma maquininha para usar Crédito/Débito.");
+if (!machineId || !machineName || !machineRaw){
+  alert("Cadastre/Selecione uma maquininha para usar Crédito/Débito.");
+  return;
+}
+
+if (selectedMethod === "debit" && !machineSupportsDebit(machineRaw)){
+  alert("Esta maquininha não está habilitada para débito.");
+  return;
+}
+
+if (selectedMethod === "credit"){
+  if (!machineSupportsCredit(machineRaw)){
+    alert("Esta maquininha não está habilitada para crédito.");
     return;
   }
 
-  if (selectedMethod === "credit"){
-    installments = Number(cardInstallmentsSelect.value || 1);
+  installments = Number(cardInstallmentsSelect.value || 1);
+
+  const enabledInstallments = getEnabledInstallments(machineRaw);
+  if (!enabledInstallments.includes(installments)){
+    alert("Esta parcela não está habilitada para a maquininha selecionada.");
+    return;
   }
+}
 }
 
 splits.push({
@@ -1484,7 +1511,7 @@ splits.push({
     chipMethod.textContent = "Selecione uma forma";
     splitAmount.value = "";
 
-    payModal.querySelectorAll(".pay-btn").forEach(b => b.classList.remove("active"));
+    payModal?.querySelectorAll(".pay-btn").forEach(b => b.classList.remove("active"));
 
     // ✅ ESCONDE maquininha/parcelas quando não tem método selecionado
 refreshCardOptionsUI(null);
@@ -1606,65 +1633,42 @@ refreshCardOptionsUI(null);
       : `Faltam: ${brl(Math.abs(diff))}`;
   }
 
-  function applySaleStockMovement({ saleId, by, items }){
-  const KEY_PRODUCTS = "core.products.v1";
-  const KEY_MOVES = "core.stock.movements.v1";
-
-  // carrega produtos
-  let products = [];
-  try { products = JSON.parse(localStorage.getItem(KEY_PRODUCTS) || "[]"); }
-  catch { products = []; }
-
-  const byId = new Map(products.map(p => [String(p.id), p]));
-
-  // monta movimentos e atualiza estoque
-  const moves = [];
+  
+  async function applySaleStockMovement({ saleId, by, items }){
   for (const it of (items || [])){
-    const pid = String(it.productId);
+    const pid = it?.productId ?? it?.product_id ?? it?.product?.id ?? null;
+if (!pid) continue;
     const qty = Number(it.qty || 0);
     if (!pid || qty <= 0) continue;
 
-    const p = byId.get(pid);
-    if (!p) continue;
+    const raw = PRODUCTS_BY_ID.get(pid);
+    if (!raw) continue;
 
-    const cur = Number(p.stockOnHand || 0);
-    const next = Math.max(cur - qty, 0);
+    const before = Number(raw.stockOnHand || 0);
+    const nextStock = Math.max(before - qty, 0);
 
-    p.stockOnHand = next;
-    p.updatedAt = new Date().toISOString();
-    byId.set(pid, p);
-
-    moves.push({
-      id: `mov_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`,
+    // 1) ledger (Supabase)
+    await window.StockStore.addMove({
       productId: pid,
-      type: "LOSS",            // saída
+      kind: "out",
       qty: qty,
-      reason: "VENDA",
-      note: "",
-      ref: saleId || null,
-      createdAt: new Date().toISOString(),
-      createdBy: by || null,
+      note: "VENDA",
+      ref: saleId || null
     });
+
+    // 2) atualiza estoque instantâneo (Supabase)
+    const updated = await window.ProductsStore.update(pid, { stockOnHand: nextStock });
+
+    // 3) atualiza cache
+    PRODUCTS_BY_ID.set(pid, updated);
   }
 
-  // salva produtos atualizados
-  products = [...byId.values()];
-  localStorage.setItem(KEY_PRODUCTS, JSON.stringify(products));
-
-  // salva movimentos
-  if (moves.length){
-    let arr = [];
-    try { arr = JSON.parse(localStorage.getItem(KEY_MOVES) || "[]"); }
-    catch { arr = []; }
-    arr.push(...moves);
-    localStorage.setItem(KEY_MOVES, JSON.stringify(arr));
-  }
-
-  return { ok:true, movesCount: moves.length };
+  PRODUCTS_RAW = Array.from(PRODUCTS_BY_ID.values());
+  return { ok: true };
 }
 
 
-    function confirmPay(){
+    async function confirmPay(){
     const t = total();
     if (t <= 0) return;
 
@@ -1715,9 +1719,10 @@ if (!selectedCustomer) {
       splits: splits.map(s => ({ method: s.method, amount: s.amount }))
     });
 
-    const saleId = `sale_${Date.now()}`;
+    const receiptSaleId = `sale_${Date.now()}`;
+let saleDbId = null;
     log("SALE_CHECKOUT", {
-  saleId,
+  receiptSaleId,
   subtotal: subtotal(),
   discount: discountAmount(),
   total: t,
@@ -1770,12 +1775,11 @@ payments.cash = round2(cashReceived - changeCash);
 
   // custo total baseado no cadastro de Produtos
   costTotal = 0;
-  for (const it of Object.values(cart)){
-    const repo = window.CoreProductsRepo;
-    const raw = repo?.getById(it.product.id);
-    const prod = raw ? mapProductForSale(raw) : it.product;
-    costTotal += (Number(prod.cost || 0) * it.qty);
-  }
+for (const it of Object.values(cart)){
+  const raw = PRODUCTS_BY_ID.get(String(it.product.id));
+  const cost = raw ? (Number(raw.costCents || 0) / 100) : Number(it.product.cost || 0);
+  costTotal += (cost * it.qty);
+}
 
     // ===== CUSTOS OPERACIONAIS (TAXA MAQUININHA) — snapshot na venda =====
   operationalCosts = [];
@@ -1783,7 +1787,7 @@ cardFeeTotal = 0;
 
 
   // lista “normalizada” de maquininhas (com raw)
-  const machinesNorm = loadMachinesForSelect();
+  const machinesNorm = await loadMachinesForSelect();
 
   // percorre cada split de cartão e calcula a taxa
   for (const s of splits){
@@ -1842,8 +1846,59 @@ profitNet = round2(profitGross - cardFeeTotal);
   throw new Error("CoreCash não carregou (window.CoreCash indefinido).");
 }
 
+// ✅ grava venda no Supabase (sales + sale_items) primeiro
+const saleRes = await window.SalesStore.createSaleWithItems({
+  subtotal: subtotal(),
+  discount: discountAmount(),
+  total: t,
+  payments,
+  items: Object.values(cart).map(it => ({
+    productId: it.product.id,
+    qty: it.qty,
+    unitPrice: it.product.price
+  })),
+  customerSnapshot: selectedCustomer
+    ? { id: selectedCustomer.id, name: selectedCustomer.name, doc: selectedCustomer.doc || null, phone: selectedCustomer.phone || null }
+    : null,
+  note: JSON.stringify({
+  customer: selectedCustomer
+    ? {
+        id: selectedCustomer.id,
+        name: selectedCustomer.name,
+        doc: selectedCustomer.doc || null,
+        phone: selectedCustomer.phone || null
+      }
+    : null,
+  receiptSaleId,
+  by,
+  discounts: (discounts || []).map(d => ({
+    id: d.id,
+    type: d.type,
+    value: d.value,
+    reason: d.reason || ""
+  })),
+  cardMeta: splits
+    .filter(s => s.method === "credit" || s.method === "debit")
+    .map(s => ({
+      method: s.method,
+      amount: s.amount,
+      machineId: s.machineId,
+      machineName: s.machineName,
+      installments: s.installments
+    })),
+  operationalCosts,
+  cardFeeTotal,
+  profitGross,
+  profitNet
+})
+});
+
+saleDbId = saleRes?.saleId || null;
+if (!saleDbId) throw new Error("Falha: SalesStore não retornou saleId.");
+
+
 const cashRes = window.CoreCash.registerSale({
-  saleId,
+  saleId: saleDbId,
   total: t,
   payments,
   costTotal,
@@ -1898,16 +1953,21 @@ if (!cashRes || cashRes.ok === false){
 }
 
 
+// ✅ grava venda no Supabase (sales + sale_items)
+if (!window.SalesStore) {
+  throw new Error("SalesStore não carregou (shared/store/sales.js).");
+}
+
+
   // ✅ baixa estoque do jeito oficial (Produtos + Movimentações)
-applySaleStockMovement({
-  saleId,
+await applySaleStockMovement({
+  saleId: saleDbId,
   by,
   items: Object.values(cart).map(it => ({
     productId: it.product.id,
     qty: it.qty
   }))
 });
-
 
 
 
@@ -1922,17 +1982,24 @@ applySaleStockMovement({
   // você pode mostrar isso no modal depois
 }
 
-
+const soldCustomer = selectedCustomer
+  ? {
+      id: selectedCustomer.id,
+      name: selectedCustomer.name,
+      phone: selectedCustomer.phone || null,
+      doc: selectedCustomer.doc || null
+    }
+  : null;
 
 
     // ✅ monta resumo da venda ANTES de limpar o carrinho
 const saleSummary = {
-  saleId,
+  saleId: receiptSaleId,
+  saleDbId,
+  integrationOk: !!saleDbId,
   at: new Date().toISOString(),
   by,
-  customer: selectedCustomer
-    ? { id: selectedCustomer.id, name: selectedCustomer.name }
-    : null,
+  customer: soldCustomer,
 
   items: Object.values(cart).map(it => ({
   name: it.product.name,
@@ -1966,17 +2033,56 @@ changeCash: round2(changeCash),
 
 };
 
-// limpa (agora sim pode limpar)
+// limpa
 Object.keys(cart).forEach(k => delete cart[k]);
 discounts = [];
 splits = [];
-selectedMethod = null;
+selectedCustomer = null;
+clearCustomer();
 
 // UI
 renderCart();
 closePay();
 clearResults();
 searchInput.value = "";
+
+// dispara eventos para o restante do sistema
+window.CoreBus?.emit?.("sale:created", {
+  saleId: saleDbId || receiptSaleId,
+  total: t,
+  customer: soldCustomer
+});
+
+window.CoreBus?.emit?.("sale:finished", {
+  saleId: saleDbId || receiptSaleId,
+  total: t,
+  customer: soldCustomer
+});
+
+window.CoreBus?.emit?.("stock:changed", {
+  reason: "sale",
+  saleId: saleDbId || receiptSaleId
+});
+
+window.CoreBus?.emit?.("cash:changed", {
+  reason: "sale",
+  saleId: saleDbId || receiptSaleId
+});
+
+window.CoreBus?.emit?.("sale:finished", {
+  saleId: saleDbId || receiptSaleId,
+  total: t
+});
+
+window.CoreBus?.emit?.("stock:changed", {
+  reason: "sale",
+  saleId: saleDbId || receiptSaleId
+});
+
+window.CoreBus?.emit?.("cash:changed", {
+  reason: "sale",
+  saleId: saleDbId || receiptSaleId
+});
 
 // ✅ abre modal do sistema
 setTimeout(() => openSaleDoneModal(saleSummary), 0);
@@ -1987,48 +2093,56 @@ btnPayConfirm.disabled = false;
 
 
   /* ---------- EVENTOS ---------- */
-  searchInput.addEventListener("input", () => {
+  searchInput?.addEventListener("input", () => {
     renderResults(filterProducts(searchInput.value));
   });
 
-  searchInput.addEventListener("keydown", (e) => {
+  searchInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter"){
       e.preventDefault();
       handleScanOrEnter(searchInput.value);
     }
   });
 
-  btnScan.addEventListener("click", () => {
+  btnScan?.addEventListener("click", () => {
     handleScanOrEnter(searchInput.value);
   });
 
-  btnDiscount.addEventListener("click", openDiscount);
-  btnCheckout.addEventListener("click", openPay);
+  btnDiscount?.addEventListener("click", openDiscount);
+  btnCheckout?.addEventListener("click", openPay);
 
   // modal desconto
-  btnDiscountCancel.addEventListener("click", closeDiscount);
-  btnDiscountApply.addEventListener("click", applyDiscount);
-  discountModal.addEventListener("click", (e) => { if (e.target === discountModal) closeDiscount(); });
+  btnDiscountCancel?.addEventListener("click", closeDiscount);
+  btnDiscountApply?.addEventListener("click", applyDiscount);
+  discountModal?.addEventListener("click", (e) => { if (e.target === discountModal) closeDiscount(); });
 
   // modal pagamento
-    payModal.querySelectorAll(".pay-btn").forEach(btn => {
-    btn.addEventListener("click", () => selectSplitMethod(btn.getAttribute("data-method"), btn));
+    payModal?.querySelectorAll(".pay-btn").forEach(btn => {
+    btn?.addEventListener("click", () => selectSplitMethod(btn.getAttribute("data-method"), btn));
   });
 
-      btnAddSplit.addEventListener("click", addSplit);
-  splitAmount.addEventListener("input", setConfirmEnabled);
+    cardMachineSelect?.addEventListener("change", () => {
+  if (selectedMethod === "credit"){
+    refreshInstallmentsByMachine();
+  }
+});
+
+      btnAddSplit?.addEventListener("click", async () => {
+  await addSplit();
+});
+  splitAmount?.addEventListener("input", setConfirmEnabled);
 
 
 
-  btnPayCancel.addEventListener("click", closePay);
-  btnPayConfirm.addEventListener("click", (e) => {
+  btnPayCancel?.addEventListener("click", closePay);
+  btnPayConfirm?.addEventListener("click", (e) => {
   e.preventDefault();
   e.stopPropagation();
   confirmPay();
 });
 
-  cashValue.addEventListener("input", updateChange);
-  payModal.addEventListener("click", (e) => { if (e.target === payModal) closePay(); });
+  cashValue?.addEventListener("input", updateChange);
+  payModal?.addEventListener("click", (e) => { if (e.target === payModal) closePay(); });
 
   /* =========================
      DEV MODE (Venda) — Painel de ajustes (com senha)
@@ -2314,12 +2428,21 @@ if (savedPos){
 
 
   // Init
-  renderCart();
-
-  refreshCashGateUI();
-clearResults();
-searchInput.focus();
-log("SALE_PAGE_OPEN");
+(async () => {
+  try{
+    await loadProductsCache();
+    await loadMachinesForSelect();
+  }catch(e){
+    console.error("[Venda] Falha ao carregar dados iniciais do Supabase:", e);
+  }finally{
+    renderCart();
+    refreshCashGateUI();
+    clearResults();
+    await loadCustomers();
+    searchInput.focus();
+    log("SALE_PAGE_OPEN");
+  }
+})();
 
 
 };

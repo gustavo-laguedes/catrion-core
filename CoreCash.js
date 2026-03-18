@@ -6,6 +6,95 @@
   const KEY_EVENTS  = "core.cash.events.v1";
   const MAX_EVENTS = 20000; // histórico grande pro modo local-dev (ajuste se quiser)
 
+  // =========================
+// Sync Supabase (fire-and-forget)
+// =========================
+async function syncEnsureRemoteSession(session) {
+  try {
+    if (!window.CashStore) return null;           // sem store, fica só local
+    if (!session?.isOpen) return null;
+
+    // se já tem id remoto, ok
+    if (session.remoteSessionId) return session.remoteSessionId;
+
+    const row = await window.CashStore.openSession({
+      openedBy: session.openedBy || "system",
+      openingCashCents: Math.round(Number(session.initialAmount || 0) * 100),
+      note: session.notes || ""
+    });
+
+    session.remoteSessionId = row?.id || null;
+    saveSession(session); // salva de novo no LS com o ID remoto
+    return session.remoteSessionId;
+  } catch (e) {
+    console.warn("[CoreCash] Falha ao abrir sessão no Supabase (mantendo local):", e);
+    return null;
+  }
+}
+
+async function syncEventToSupabase(evt) {
+  try {
+    if (!window.CashStore) return;
+
+    const session = loadSession();
+    if (!session) return;
+
+    // garante sessão remota se estiver aberto
+    const remoteId =
+      session.remoteSessionId ||
+      (session.isOpen ? await syncEnsureRemoteSession(session) : null);
+
+    // se caixa já fechou e nunca teve remoteId, não tem como linkar (deixa local)
+    if (!remoteId) return;
+
+    const amountCents = Math.round(Number(evt?.amount ?? evt?.total ?? 0) * 100);
+
+    // vamos salvar "by", "notes", "saleId" e "meta" dentro de note (texto)
+    const noteObj = {
+      by: evt?.by ?? null,
+      saleId: evt?.saleId ?? null,
+      notes: evt?.meta?.notes ?? "",
+      meta: evt?.meta ?? null
+    };
+
+    await window.CashStore.addEvent({
+      sessionId: remoteId,
+      kind: String(evt?.type || ""),     // <-- AQUI é o principal: usa evt.type
+      amountCents,
+      note: JSON.stringify(noteObj)
+    });
+  } catch (e) {
+    console.warn("[CoreCash] Falha ao inserir evento no Supabase (mantendo local):", e);
+  }
+}
+
+async function syncCloseToSupabase(session) {
+  try {
+    if (!window.CashStore) return;
+
+    // se não tem remoteSessionId, não dá pra fechar remotamente
+    if (!session?.remoteSessionId) return;
+
+    await window.CashStore.closeSession({
+      sessionId: session.remoteSessionId,
+      closedBy: session.closedBy || "system",
+      closingCashCountedCents: Math.round(Number(session.finalAmount || 0) * 100),
+      note: session.notes || ""
+    });
+
+    // também registra evento CLOSE (opcional, mas eu gosto de ter)
+    await window.CashStore.addEvent({
+      sessionId: session.remoteSessionId,
+      kind: "CLOSE",
+      amountCents: Math.round(Number(session.finalAmount || 0) * 100),
+      by: session.closedBy || "system",
+      meta: { notes: session.notes || "" }
+    });
+  } catch (e) {
+    console.warn("[CoreCash] Falha ao fechar sessão no Supabase (mantendo local):", e);
+  }
+}
+
 // === Integração simples com Estoque (localStorage) ===
 const KEY_PRODUCTS = "core.products.v1";
 const KEY_MOVES    = "core.stock.movements.v1";
@@ -411,6 +500,13 @@ function getTodayEvents() {
         meta: { notes: session.notes || "" }
       });
 
+      // fire-and-forget: cria sessão no supabase e registra OPEN
+syncEnsureRemoteSession(session).then(() => {
+  // opcional: registra o OPEN como evento remoto também
+  const evtOpen = { type:"OPEN", amount: session.initialAmount, by, meta:{ notes: session.notes || "" } };
+  syncEventToSupabase(evtOpen);
+});
+
       return { ok: true, session };
     },
 
@@ -437,6 +533,9 @@ function getTodayEvents() {
         meta: { notes: notes || "" }
       });
 
+      // fire-and-forget: fecha remoto
+syncCloseToSupabase(session);
+
       return { ok: true, session };
     },
 
@@ -454,6 +553,8 @@ function getTodayEvents() {
         meta: { notes: notes || "" }
       });
 
+      syncEventToSupabase(evt);
+
       return { ok: true, event: evt };
     },
 
@@ -470,6 +571,8 @@ function getTodayEvents() {
         amount: v,
         meta: { notes: notes || "" }
       });
+
+      syncEventToSupabase(evt);
 
       return { ok: true, event: evt };
     },
@@ -505,6 +608,8 @@ const profitNorm = (profit != null)
         profit: profitNorm,
         meta: meta || {}
       });
+
+      syncEventToSupabase(evt);
 
       return { ok: true, event: evt };
     },
