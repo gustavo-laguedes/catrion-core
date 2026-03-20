@@ -138,6 +138,23 @@ function appPatchToDb(patch) {
   });
 }
 
+async function getById(id) {
+  assertClient();
+  if (!id) throw new Error("getById(): id é obrigatório.");
+
+  return window.CatrionTenantContext.withTenant(async (tenantId) => {
+    const { data, error } = await window.sb
+      .from("products")
+      .select("*")
+      .eq("id", id)
+      .eq("tenant_id", tenantId)
+      .single();
+
+    if (error) throw error;
+    return dbToApp(data);
+  });
+}
+
   async function remove(id) {
   assertClient();
   if (!id) throw new Error("remove(): id é obrigatório.");
@@ -155,5 +172,5 @@ function appPatchToDb(patch) {
 }
 
   // expõe no global
-  window.ProductsStore = { list, create, update, remove };
+  window.ProductsStore = { list, create, update, getById, remove };
 })();

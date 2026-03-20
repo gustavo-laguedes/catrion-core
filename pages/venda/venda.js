@@ -25,6 +25,10 @@ window.CorePageModules.venda = function () {
   const btnDiscountCancel = $("btnDiscountCancel");
   const btnDiscountApply  = $("btnDiscountApply");
 
+  const couponSearch    = $("couponSearch");
+const couponSavedList = $("couponSavedList");
+const btnCouponSave   = $("btnCouponSave");
+
   const payModal        = $("payModal");
   const payTotalEl      = $("payTotal");
   const payMiniEl       = $("payMini");
@@ -209,7 +213,7 @@ function fmtDateBR(iso){
 }
 
 function renderSaleDoneSummary(sale){
-  const cust = sale.customer?.name ? `${sale.customer.name}${sale.customer.id ? ` (${sale.customer.id})` : ""}` : "Consumidor final";
+  const cust = sale.customer?.name ? sale.customer.name : "Consumidor final";
   const itemsHtml = (sale.items || []).map(it => `
   <div class="receipt-item">
     <div class="receipt-img">
@@ -246,13 +250,12 @@ function renderSaleDoneSummary(sale){
     <div class="receipt-preview">
       <div class="receipt-head">
         <div>
-          <div class="receipt-title">CORE POS</div>
+          <div class="receipt-title">CORE</div>
           <div class="receipt-meta">
-            Venda: <b>${sale.saleId}</b><br/>
-            Data: ${fmtDateBR(sale.at)}<br/>
-            Operador: ${sale.by || "—"}<br/>
-            Cliente: ${cust}
-          </div>
+  Data: ${fmtDateBR(sale.at)}<br/>
+  Operador: ${sale.by || "—"}<br/>
+  Cliente: ${cust}
+</div>
         </div>
         <div class="receipt-badge">${sale.methodLabel || ""}</div>
       </div>
@@ -523,15 +526,15 @@ w.onload = () => {
 
 
 // ✅ expõe impressão para outras páginas (Caixa / Relatórios)
-window.CoreReceipt = window.CoreReceipt || {};
-window.CoreReceipt.printThermal = function (sale) {
-  return printThermalReceipt(sale);
-};
-
 btnSaleDonePrint?.addEventListener("click", ()=>{
   if (!lastSaleForPrint) return;
-  printThermalReceipt(lastSaleForPrint);
 
+  if (window.CoreReceipt?.printThermal){
+    window.CoreReceipt.printThermal(lastSaleForPrint);
+    return;
+  }
+
+  alert("Impressão não disponível no momento.");
 });
 
 function getRateConfig(machineRaw, key){
@@ -1062,6 +1065,8 @@ function repoGetById(id){
   // desconto aplicado (mock)
   let discounts = []; // [{ id, type, value, reason }]
 
+    let coupons = [];
+let editingCouponId = null;
 
     let selectedMethod = null;
   let splits = []; // [{ method:"pix|debit|credit|cash", amount:number }]
@@ -1249,6 +1254,224 @@ function repoGetById(id){
   renderResults(filterProducts(code));
 }
 
+async function withTenantId(run){
+  const tenantId =
+    window.CatrionTenant?.requireTenantId?.() ||
+    window.CatrionTenantContext?.getTenantId?.() ||
+    null;
+
+  if (!tenantId) throw new Error("Tenant não encontrado.");
+  return run(tenantId);
+}
+
+function couponDbToApp(row){
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    code: row.code || "",
+    kind: row.kind || "value",
+    value: row.kind === "percent"
+      ? Number(row.value_percent || 0)
+      : Number(row.value_cents || 0) / 100,
+    note: row.note || "",
+    isActive: row.is_active !== false,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+async function listCoupons(){
+  if (!window.sb) throw new Error("Supabase client não inicializado.");
+
+  return withTenantId(async (tenantId) => {
+    const { data, error } = await window.sb
+      .from("coupons")
+      .select("*")
+      .eq("tenant_id", tenantId)
+      .order("code", { ascending: true });
+
+    if (error) throw error;
+    return (data || []).map(couponDbToApp);
+  });
+}
+
+async function createCoupon({ code, kind, value, note = "" }){
+  if (!window.sb) throw new Error("Supabase client não inicializado.");
+
+  return withTenantId(async (tenantId) => {
+    const payload = {
+      tenant_id: tenantId,
+      code: String(code || "").trim(),
+      kind,
+      value_cents: kind === "value" ? Math.round(Number(value || 0) * 100) : null,
+      value_percent: kind === "percent" ? Number(value || 0) : null,
+      note: note || null,
+      is_active: true
+    };
+
+    const { data, error } = await window.sb
+      .from("coupons")
+      .insert([payload])
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return couponDbToApp(data);
+  });
+}
+
+async function updateCoupon(id, { code, kind, value, note = "", isActive = true }){
+  if (!window.sb) throw new Error("Supabase client não inicializado.");
+
+  return withTenantId(async (tenantId) => {
+    const patch = {
+      code: String(code || "").trim(),
+      kind,
+      value_cents: kind === "value" ? Math.round(Number(value || 0) * 100) : null,
+      value_percent: kind === "percent" ? Number(value || 0) : null,
+      note: note || null,
+      is_active: !!isActive
+    };
+
+    const { data, error } = await window.sb
+      .from("coupons")
+      .update(patch)
+      .eq("id", id)
+      .eq("tenant_id", tenantId)
+      .select("*")
+      .single();
+
+    if (error) throw error;
+    return couponDbToApp(data);
+  });
+}
+
+async function deleteCoupon(id){
+  if (!window.sb) throw new Error("Supabase client não inicializado.");
+
+  return withTenantId(async (tenantId) => {
+    const { error } = await window.sb
+      .from("coupons")
+      .delete()
+      .eq("id", id)
+      .eq("tenant_id", tenantId);
+
+    if (error) throw error;
+    return true;
+  });
+}
+
+function setCouponFormMode(mode){
+  if (!btnCouponSave) return;
+
+  if (mode === "edit"){
+    btnCouponSave.textContent = "Atualizar cupom";
+  } else {
+    editingCouponId = null;
+    btnCouponSave.textContent = "Salvar cupom";
+  }
+}
+
+function clearCouponForm(){
+  editingCouponId = null;
+
+  if (discountType) discountType.value = "value";
+  if (discountInput) discountInput.value = "";
+  if (discountReason) discountReason.value = "";
+
+  setCouponFormMode("create");
+}
+
+function fillCouponForm(coupon){
+  editingCouponId = coupon.id;
+
+  if (discountType) discountType.value = coupon.kind || "value";
+  if (discountInput) discountInput.value = String(coupon.value || 0);
+  if (discountReason) discountReason.value = coupon.code || coupon.note || "";
+
+  setCouponFormMode("edit");
+}
+
+function renderSavedCoupons(list){
+  if (!couponSavedList) return;
+
+  if (!list.length){
+    couponSavedList.innerHTML = `<div class="coupon-empty">Nenhum cupom salvo.</div>`;
+    return;
+  }
+
+  couponSavedList.innerHTML = list.map(c => `
+    <div class="coupon-row ${c.isActive ? "" : "is-inactive"}">
+      <div class="coupon-meta">
+        <div class="line1">${c.code}</div>
+        <div class="line2">
+          ${c.kind === "percent" ? `${c.value}%` : brl(c.value)}
+          ${c.note ? ` • ${c.note}` : ""}
+          ${!c.isActive ? " • inativo" : ""}
+        </div>
+      </div>
+
+      <div class="coupon-actions">
+        <button class="coupon-apply" data-coupon-apply="${c.id}" type="button">Usar</button>
+        <button class="coupon-edit" data-coupon-edit="${c.id}" type="button">✏️</button>
+        <button class="coupon-delete" data-coupon-del="${c.id}" type="button">🗑</button>
+      </div>
+    </div>
+  `).join("");
+
+  couponSavedList.querySelectorAll("[data-coupon-apply]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-coupon-apply");
+      const c = coupons.find(x => x.id === id);
+      if (!c || !c.isActive) return;
+
+      const appliedId = `coupon_${c.id}_${Date.now()}`;
+      discounts.push({
+  id: appliedId,
+  type: c.kind,
+  value: Number(c.value || 0),
+  reason: c.code
+});
+
+renderCart();
+renderDiscountList();
+clearCouponForm();
+closeDiscount();
+    });
+  });
+
+  couponSavedList.querySelectorAll("[data-coupon-edit]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-coupon-edit");
+      const c = coupons.find(x => x.id === id);
+      if (!c) return;
+      fillCouponForm(c);
+    });
+  });
+
+  couponSavedList.querySelectorAll("[data-coupon-del]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-coupon-del");
+      if (!id) return;
+
+      const ok = confirm("Deseja realmente excluir este cupom?");
+      if (!ok) return;
+
+      try{
+        await deleteCoupon(id);
+        coupons = await listCoupons();
+        renderSavedCoupons(coupons);
+        if (editingCouponId === id) clearCouponForm();
+      }catch(err){
+        console.error("[VENDA] erro ao excluir cupom:", err);
+        alert("Não foi possível excluir o cupom.");
+      }
+    });
+  });
+}
+
+
+
 
   function renderDiscountList(){
   if (!discountList) return;
@@ -1294,16 +1517,27 @@ function repoGetById(id){
 
 
   /* ---------- DESCONTO ---------- */
-function openDiscount(){
+async function openDiscount(){
   if (subtotal() <= 0) return;
+
   discountModal.classList.remove("hidden");
 
-  // limpa inputs pra não confundir com “1 desconto só”
   discountType.value = "value";
   discountInput.value = "";
   discountReason.value = "";
 
   renderDiscountList();
+  clearCouponForm();
+
+  try{
+    coupons = await listCoupons();
+    renderSavedCoupons(coupons);
+  }catch(err){
+    console.error("[VENDA] erro ao carregar cupons:", err);
+    if (couponSavedList){
+      couponSavedList.innerHTML = `<div class="coupon-empty">Erro ao carregar cupons.</div>`;
+    }
+  }
 }
 
   function applyDiscount(){
@@ -1316,7 +1550,7 @@ function openDiscount(){
     return;
   }
 
-  const id = `d_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  const id = `manual_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 
   discounts.push({ id, type, value, reason });
 
@@ -2114,6 +2348,62 @@ btnPayConfirm.disabled = false;
   // modal desconto
   btnDiscountCancel?.addEventListener("click", closeDiscount);
   btnDiscountApply?.addEventListener("click", applyDiscount);
+
+couponSearch?.addEventListener("input", () => {
+  const q = String(couponSearch.value || "").trim().toLowerCase();
+
+  const filtered = coupons.filter(c =>
+    c.code.toLowerCase().includes(q) ||
+    (c.note || "").toLowerCase().includes(q)
+  );
+
+  renderSavedCoupons(filtered);
+});
+
+btnCouponSave?.addEventListener("click", async () => {
+  const code = String(discountReason.value || "").trim();
+  const kind = discountType.value;
+  const value = Number(String(discountInput.value || "0").replace(",", "."));
+
+  if (!code){
+    alert("Informe o nome/código do cupom no campo Motivo.");
+    discountReason.focus();
+    return;
+  }
+
+  if (!value || value <= 0){
+    alert("Informe um valor de cupom válido.");
+    discountInput.focus();
+    return;
+  }
+
+  try{
+    if (editingCouponId){
+      await updateCoupon(editingCouponId, {
+        code,
+        kind,
+        value,
+        note: code,
+        isActive: true
+      });
+    } else {
+      await createCoupon({
+        code,
+        kind,
+        value,
+        note: code
+      });
+    }
+
+    coupons = await listCoupons();
+    renderSavedCoupons(coupons);
+    clearCouponForm();
+  }catch(err){
+    console.error("[VENDA] erro ao salvar cupom:", err);
+    alert("Não foi possível salvar o cupom.");
+  }
+});
+
   discountModal?.addEventListener("click", (e) => { if (e.target === discountModal) closeDiscount(); });
 
   // modal pagamento

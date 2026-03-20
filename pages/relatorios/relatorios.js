@@ -122,6 +122,40 @@ function openPrintPDF(title, subtitle, headers, rows){
     return events.filter(e => e.type === "SALE");
   }
 
+  function isCancelledSale(ev){
+  return !!ev?.cancelledAt;
+}
+
+function onlyActiveSales(events){
+  return onlySales(events).filter(ev => !isCancelledSale(ev));
+}
+
+async function getCancelledSaleIdsInRange(startDateISO, endDateISO){
+  try{
+    if (!window.SalesStore?.list) return new Set();
+
+    const sales = await window.SalesStore.list({
+      limit: 5000,
+      orderBy: "created_at",
+      ascending: false,
+      startDateISO,
+      endDateISO
+    });
+
+    const ids = new Set(
+      (sales || [])
+        .filter(sale => String(sale?.status || "").toLowerCase() === "cancelled")
+        .map(sale => String(sale.id || "").trim())
+        .filter(Boolean)
+    );
+
+    return ids;
+  }catch(err){
+    console.error("[ESTOQUE] erro ao buscar vendas canceladas:", err);
+    return new Set();
+  }
+}
+
   function inRange(iso, start, end){
     const t = new Date(iso).getTime();
     return t >= start.getTime() && t <= end.getTime();
@@ -585,7 +619,7 @@ btnRefresh.onclick = () => draw();
       e.setHours(23,59,59,999);
 
       const events = loadCashEvents();
-      const sales = onlySales(events).filter(x => x.at && inRange(x.at, s, e));
+const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
 
       const k = calcKpis(sales);
 
@@ -832,7 +866,7 @@ function renderResultado(){
 
     // --- vendas
     const events = loadCashEvents();
-    const sales = onlySales(events).filter(x => x.at && inRange(x.at, s, e));
+const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
     const k = calcKpis(sales);
 
     // --- contas pagas no período
@@ -1249,7 +1283,7 @@ function drawLineChartSigned(canvas, series){
       const exportTitle = "Vendas";
 const exportSubtitle = `Período: ${vStart.value} até ${vEnd.value} • Usuário: ${vUser.value || "Todos"}`;
 
-const headers = ["Data", "Hora", "Total (R$)", "Usuário", "Cliente"];
+const headers = ["Status", "Data", "Hora", "Total (R$)", "Usuário", "Cliente"];
 const rows = filtered
   .sort((a,b)=> new Date(b.at) - new Date(a.at))
   .map(sale => {
@@ -1257,7 +1291,8 @@ const rows = filtered
     const data = d.toLocaleDateString("pt-BR");
     const hora = d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
     const cliente = sale.meta?.customer?.name || "";
-    return [data, hora, Number(sale.total||0).toFixed(2), sale.by||"", cliente];
+    const status = isCancelledSale(sale) ? "CANCELADO" : "ATIVO";
+    return [status, data, hora, Number(sale.total||0).toFixed(2), sale.by||"", cliente];
   });
 
 document.getElementById("btnExportCSV").onclick = () => {
@@ -1274,17 +1309,29 @@ document.getElementById("btnExportPDF").onclick = () => {
       }
 
       vList.innerHTML = filtered
-        .sort((a,b)=> new Date(b.at) - new Date(a.at))
-        .map(sale => {
-          const when = new Date(sale.at);
-          const cust = sale.meta?.customer?.name ? ` • Cliente: ${sale.meta.customer.name}` : "";
-          return `
-            <div class="r-row" data-id="${sale.id || ""}">
-              <div class="t">${moneyBR(sale.total || 0)} <span style="font-weight:800; color:#64748b;">• ${fmtDateBR(when)} ${when.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}</span></div>
-              <div class="m">Usuário: <b>${sale.by || "—"}</b>${cust}</div>
-            </div>
-          `;
-        }).join("");
+  .sort((a,b)=> new Date(b.at) - new Date(a.at))
+  .map(sale => {
+    const when = new Date(sale.at);
+    const cust = sale.meta?.customer?.name ? ` • Cliente: ${sale.meta.customer.name}` : "";
+    const cancelled = isCancelledSale(sale);
+
+    return `
+      <div class="r-row ${cancelled ? "is-cancelled-sale" : ""}" data-id="${sale.id || ""}">
+        <div class="r-row-top">
+          <div class="t">
+            ${moneyBR(sale.total || 0)}
+            <span style="font-weight:800; color:#64748b;">
+              • ${fmtDateBR(when)} ${when.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}
+            </span>
+          </div>
+
+          ${cancelled ? `<span class="r-cancel-badge">Cancelado</span>` : ``}
+        </div>
+
+        <div class="m">Usuário: <b>${sale.by || "—"}</b>${cust}</div>
+      </div>
+    `;
+  }).join("");
 
       vList.querySelectorAll(".r-row").forEach(row=>{
         row.addEventListener("click", ()=>{
@@ -1298,6 +1345,30 @@ const whenBR = `${when.toLocaleDateString("pt-BR")} ${when.toLocaleTimeString("p
 
 const customerName = sale.meta?.customer?.name || "—";
 const userName = sale.by || "—";
+
+const cancelledBadge = isCancelledSale(sale)
+  ? `
+    <div style="
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-width:118px;
+      height:34px;
+      padding:0 14px;
+      border-radius:999px;
+      background:#ef4444;
+      color:#fff;
+      font-weight:950;
+      letter-spacing:.4px;
+      text-transform:uppercase;
+      font-size:12px;
+      box-shadow:0 10px 20px rgba(239,68,68,.18);
+      margin-top:10px;
+    ">
+      Cancelado
+    </div>
+  `
+  : "";
 
 const items = sale.meta?.items || [];
 const rawPayments = sale.payments ?? sale.meta?.payments ?? null;
@@ -1377,16 +1448,17 @@ const profitNet = Number(sale.profit != null ? sale.profit : (totalFinal - costT
 openModal("Detalhes da venda", `
   <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;">
     <div>
-      <div style="font-weight:950;color:#0f172a;font-size:16px;">
-        Total: ${moneyBR(totalFinal)}
-      </div>
-      <div style="margin-top:6px;color:#64748b;font-weight:800;font-size:12px;">
-        ${whenBR}
-      </div>
-      <div style="margin-top:6px;color:#334155;font-weight:900;font-size:12px;">
-        Usuário: <b>${userName}</b> • Cliente: <b>${customerName}</b>
-      </div>
-    </div>
+  <div style="font-weight:950;color:#0f172a;font-size:16px;">
+    Total: ${moneyBR(totalFinal)}
+  </div>
+  <div style="margin-top:6px;color:#64748b;font-weight:800;font-size:12px;">
+    ${whenBR}
+  </div>
+  <div style="margin-top:6px;color:#334155;font-weight:900;font-size:12px;">
+    Usuário: <b>${userName}</b> • Cliente: <b>${customerName}</b>
+  </div>
+  ${cancelledBadge}
+</div>
 
     <div style="text-align:right;">
       <div style="color:#64748b;font-weight:900;font-size:12px;">Resumo</div>
@@ -1621,7 +1693,7 @@ draw();
     e.setHours(23,59,59,999);
 
     const events = loadCashEvents();
-    const sales = onlySales(events).filter(x => x.at && inRange(x.at, s, e));
+const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
 
     const map = new Map(); // key -> {name, sku, qty, total, image}
     for (const sale of sales){
@@ -1779,7 +1851,7 @@ draw();
     e.setHours(23,59,59,999);
 
     const events = loadCashEvents();
-    let sales = onlySales(events).filter(x => x.at && inRange(x.at, s, e));
+let sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
 
     if (vdExcludeDev.value === "yes"){
       sales = sales.filter(x => !isDevUser(x.by));
@@ -2016,7 +2088,7 @@ draw();
 
       const events = loadCashEvents().filter(x => x.at && inRange(x.at, s, e));
 
-      const sales = events.filter(x => x.type === "SALE");
+      const sales = onlyActiveSales(events);
       const sup = events.filter(x => x.type === "SUPPLY");
       const wit = events.filter(x => x.type === "WITHDRAW");
 
@@ -2112,7 +2184,7 @@ draw();
       e.setHours(23,59,59,999);
 
       const events = loadCashEvents();
-      const sales = onlySales(events).filter(x => x.at && inRange(x.at, s, e));
+const sales = onlyActiveSales(events).filter(x => x.at && inRange(x.at, s, e));
 
       const map = new Map(); // id -> {id,name,total,count}
       for (const sale of sales){
@@ -2531,13 +2603,29 @@ async function renderEstoque(){
 
       const { data, error } = await query;
 
-      if (error){
-        console.error("[ESTOQUE] erro query:", error);
-        alert("Erro ao carregar movimentações do estoque.");
-        return;
-      }
+if (error){
+  console.error("[ESTOQUE] erro query:", error);
+  alert("Erro ao carregar movimentações do estoque.");
+  return;
+}
 
-      const rows = Array.isArray(data) ? data : [];
+const rawRows = Array.isArray(data) ? data : [];
+
+// busca ids das vendas canceladas no período
+const cancelledSaleIds = await getCancelledSaleIdsInRange(startISO, endISO);
+
+// remove:
+// 1) saída original da venda cancelada (ref = saleId cancelado)
+// 2) estorno da venda cancelada (normalmente com mesma ref ou nota de estorno)
+const rows = rawRows.filter((r) => {
+  const ref = String(r?.ref || "").trim();
+  const note = String(r?.note || "").toUpperCase();
+
+  if (ref && cancelledSaleIds.has(ref)) return false;
+  if (note.includes("ESTORNO VENDA CANCELADA")) return false;
+
+  return true;
+});
 
       const headers = ["Data", "Hora", "Tipo", "Produto", "SKU", "Qtd", "Obs"];
       const exportRows = rows.map(r => {
@@ -2730,12 +2818,12 @@ function renderCupons(){
 
     const events = loadCashEvents();
 
-    // ✅ só sales no período
-    const sales = onlySales(events).filter(ev => {
-      const iso = ev.at || ev.createdAt;
-      if (!iso) return false;
-      return inRange(iso, s, e);
-    });
+// ✅ só sales ativas no período
+const sales = onlyActiveSales(events).filter(ev => {
+  const iso = ev.at || ev.createdAt;
+  if (!iso) return false;
+  return inRange(iso, s, e);
+});
 
     const ranking = buildCouponsRanking(sales);
 

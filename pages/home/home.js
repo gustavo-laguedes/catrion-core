@@ -123,6 +123,10 @@ window.CorePageModules.home = function () {
   return [];
 }
 
+function isSaleCancelled(sale) {
+  return String(sale?.status || "").toLowerCase() === "cancelled";
+}
+
   function getItemName(item) {
     return (
       item?.name ||
@@ -395,34 +399,38 @@ function getPayableStatus(item) {
     }
   }
 
-  async function renderTopKpis(sales) {
-    const revenue = sales.reduce((acc, sale) => acc + getSaleTotal(sale), 0);
+  async function renderTopKpis(validSales, cancelledSales = []) {
+  const revenue = validSales.reduce((acc, sale) => acc + getSaleTotal(sale), 0);
 
-    const customerMap = new Map();
-for (const sale of sales) {
-  const snap = getSaleCustomerSnapshot(sale);
-  const customerName = getSaleCustomerName(sale);
-  if (!customerName) continue;
+  const customerMap = new Map();
 
-  const key =
-    String(snap?.id || "").trim() ||
-    String(snap?.doc || "").trim() ||
-    String(getSaleCustomerPhone(sale) || "").trim() ||
-    customerName.toLowerCase();
+  for (const sale of validSales) {
+    const snap = getSaleCustomerSnapshot(sale);
+    const customerName = getSaleCustomerName(sale);
+    if (!customerName) continue;
 
-  if (!customerMap.has(key)) {
-    customerMap.set(key, customerName);
+    const key =
+      String(snap?.id || "").trim() ||
+      String(snap?.doc || "").trim() ||
+      String(getSaleCustomerPhone(sale) || "").trim() ||
+      customerName.toLowerCase();
+
+    if (!customerMap.has(key)) {
+      customerMap.set(key, customerName);
+    }
   }
+
+  const customersCount = customerMap.size;
+  const cancelledCount = cancelledSales.length;
+
+  const $revenue = document.getElementById("kpiRevenue");
+  const $customersCount = document.getElementById("kpiCustomersCount");
+  const $cancelledSalesCount = document.getElementById("kpiCancelledSalesCount");
+
+  if ($revenue) $revenue.textContent = moneyBR(revenue);
+  if ($customersCount) $customersCount.textContent = String(customersCount);
+  if ($cancelledSalesCount) $cancelledSalesCount.textContent = String(cancelledCount);
 }
-
-    const customersCount = customerMap.size;
-
-    const $revenue = document.getElementById("kpiRevenue");
-    const $customersCount = document.getElementById("kpiCustomersCount");
-
-    if ($revenue) $revenue.textContent = moneyBR(revenue);
-    if ($customersCount) $customersCount.textContent = String(customersCount);
-  }
 
   async function buildProductTotalsFromSales(sales) {
   const map = new Map();
@@ -716,9 +724,12 @@ const key =
 
     const sales = await loadTodaySalesSafe();
 
-    await renderTopKpis(sales);
-await renderProductsChart(sales);
-renderCustomersToday(sales);
+const validSales = sales.filter((sale) => !isSaleCancelled(sale));
+const cancelledSales = sales.filter((sale) => isSaleCancelled(sale));
+
+await renderTopKpis(validSales, cancelledSales);
+await renderProductsChart(validSales);
+renderCustomersToday(validSales);
 await renderStockAlerts();
 await renderPayablesAlerts();
   }

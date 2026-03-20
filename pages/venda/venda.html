@@ -120,10 +120,32 @@
     <!-- Lista de descontos aplicados -->
     <div class="discount-list" id="discountList"></div>
 
-    <div class="modal-actions">
-      <button id="btnDiscountCancel" class="btn-ghost">Cancelar</button>
-      <button id="btnDiscountApply" class="btn-confirm">Aplicar</button>
-    </div>
+<hr class="modal-divider">
+
+<div class="coupon-manager">
+  <div class="coupon-manager-head">
+    <div class="coupon-manager-title">Cupons salvos</div>
+    <div class="coupon-manager-sub">Cadastre cupons e use-os rapidamente na venda.</div>
+  </div>
+
+  <div class="coupon-toolbar">
+    <input
+      id="couponSearch"
+      class="coupon-search"
+      type="text"
+      placeholder="Buscar cupom por nome..."
+      autocomplete="off"
+    />
+    <button id="btnCouponSave" class="btn-confirm coupon-save-btn" type="button">Salvar cupom</button>
+  </div>
+
+  <div id="couponSavedList" class="coupon-saved-list"></div>
+</div>
+
+<div class="modal-actions">
+  <button id="btnDiscountCancel" class="btn-ghost">Cancelar</button>
+  <button id="btnDiscountApply" class="btn-confirm">Aplicar desconto</button>
+</div>
   </div>
 </div>
 

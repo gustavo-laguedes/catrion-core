@@ -224,9 +224,30 @@ async function list({
   });
 }
 
+async function cancelSale(saleId) {
+  assertClient();
+  const tId = tenantId();
+
+  if (!saleId) {
+    throw new Error("cancelSale(): saleId é obrigatório.");
+  }
+
+  const { data, error } = await window.sb
+    .from("sales")
+    .update({ status: "cancelled" })
+    .eq("id", saleId)
+    .eq("tenant_id", tId)
+    .select("id,status")
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
   window.SalesStore = { 
   createSaleWithItems,
   getSummaryByPeriod,
-  list
+  list,
+  cancelSale
 };
 })();
