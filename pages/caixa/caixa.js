@@ -60,7 +60,7 @@ if (isFunc) {
   let modalValueLocked = false;
 
 
-  const $btnEventsEdit = el("btnEventsEdit");
+  const $btnEventsEdit = el("btnEventsEdit") || el("btnAdminMode");
 
   const $eventsDate = el("eventsDate");
 const $btnEventsToday = el("btnEventsToday");
@@ -167,6 +167,59 @@ function getFilteredEvents(core){
     }[t] || t);
   }
 
+  function eventCanBeCancelled(evt){
+  return !!window.CoreCash?.canCancelEvent?.(evt);
+}
+
+async function syncCancelledSaleToSupabase(evt) {
+  if (!evt || evt.type !== "SALE") return;
+
+  const saleId = evt.saleId || evt?.meta?.saleId || null;
+  const items = evt?.meta?.items || [];
+
+  if (!saleId) {
+    throw new Error("Cancelamento da venda sem saleId para sincronizar no Supabase.");
+  }
+
+  // 1) marca venda como cancelada
+  if (window.SalesStore?.cancelSale) {
+    await window.SalesStore.cancelSale(saleId);
+  }
+
+  // 2) devolve estoque item por item
+  for (const item of items) {
+    const productId =
+      item?.productId ||
+      item?.product_id ||
+      null;
+
+    const qty = Number(item?.qty || 0);
+
+    if (!productId || qty <= 0) continue;
+
+    // busca produto atual
+    const product = await window.ProductsStore.getById(productId);
+    if (!product) continue;
+
+    const currentStock = Number(product.stockOnHand || 0);
+    const nextStock = currentStock + qty;
+
+    // atualiza estoque do produto
+    await window.ProductsStore.update(productId, {
+      stockOnHand: nextStock
+    });
+
+    // grava movimentação de estorno
+    await window.StockStore.addMove({
+      productId,
+      kind: "in",
+      qty,
+      note: "ESTORNO VENDA CANCELADA",
+      ref: saleId
+    });
+  }
+}
+
   function getOperatorName() {
     const a = window.CoreAuth;
 
@@ -212,6 +265,7 @@ function getFilteredEvents(core){
 
     const e = eventSale;
     const meta = e.meta || {};
+    const isCancelled = !!e.cancelledAt;
     const a = window.CoreAuth;
 const u =
   a?.getCurrentUser?.() ||
@@ -229,9 +283,21 @@ const isFunc = (u && typeof u === "object" && u.role === "FUNC");
     const items = meta.items || [];
     const pay = e.payments || {};
 
-    $saleViewTitle.textContent = `Detalhes • ${e.saleId || ""}`.trim();
+    $saleViewTitle.textContent = `Detalhes da venda`;
 
     const money = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+    const cancelBanner = isCancelled
+  ? `
+    <div class="sale-cancel-banner">
+      <div>
+        <div class="sale-cancel-banner-text">Venda cancelada</div>
+        <div class="sale-cancel-banner-sub">Este registro foi cancelado e não entra mais nos totais operacionais.</div>
+      </div>
+      <div class="sale-cancel-chip">Cancelado</div>
+    </div>
+  `
+  : "";
 
     // ===== PAGAMENTO (com troco no dinheiro) =====
 const payLines = [];
@@ -285,7 +351,7 @@ if (cd  > 0) payLines.push(`<div>Débito: <b>${money(cd)}</b></div>`);
     const custHtml = `
       <div class="sale-box">
         <div style="font-weight:900;margin-bottom:6px;">Cliente</div>
-        <div>${cust ? `<b>${cust.name}</b> (${cust.id || "—"})` : "Consumidor final / não informado"}</div>
+        <div>${cust ? `<b>${cust.name}</b>` : "Consumidor final / não informado"}</div>
         <div style="margin-top:10px;font-weight:900;">Operador</div>
         <div>${e.by || "—"}</div>
         <div style="margin-top:10px;font-weight:900;">Data</div>
@@ -393,6 +459,7 @@ const opHtml = isFunc
     `;
 
     $saleViewBody.innerHTML = `
+  ${cancelBanner}
   <div class="sale-detail-grid">
     ${custHtml}
     ${payHtml}
@@ -403,14 +470,23 @@ const opHtml = isFunc
   ${itemsHtml}
 `;
 
+const modalEl = $saleViewBackdrop.querySelector(".core-modal.sale-view");
+if (modalEl) {
+  modalEl.classList.toggle("is-cancelled", isCancelled);
+}
 
-    $saleViewBackdrop.classList.remove("hidden");
+$saleViewBackdrop.classList.remove("hidden");
   }
 
   function closeSaleView() {
-    $saleViewBackdrop.classList.add("hidden");
-    $saleViewBody.innerHTML = "";
+  $saleViewBackdrop.classList.add("hidden");
+  $saleViewBody.innerHTML = "";
+
+  const modalEl = $saleViewBackdrop.querySelector(".core-modal.sale-view");
+  if (modalEl) {
+    modalEl.classList.remove("is-cancelled");
   }
+}
 
   let modalMode = null;
 
@@ -483,7 +559,7 @@ const opHtml = isFunc
   btn = document.createElement("button");
   btn.id = "btnEditCashValue";
   btn.className = "btn";
-  btn.textContent = "Editar";
+  btn.textContent = "Editar valor";
 
   btn.addEventListener("click", () => {
     openAdminModal();
@@ -605,6 +681,11 @@ if (isFunc) {
       $btnWithdraw.disabled = !isOpen;
     }
 
+    if ($btnEventsEdit) {
+  $btnEventsEdit.textContent = adminMode ? "Cancelamento ativo" : "Cancelar";
+  $btnEventsEdit.classList.add("danger");
+}
+
     // eventos
     $eventsList.innerHTML = "";
     if (!core) {
@@ -621,6 +702,9 @@ if (isFunc) {
       const t = typeLabel(e.type);
       const when = fmtDate(e.at);
       const who = e.by ? ` • por ${e.by}` : "";
+
+      const isCancelled = !!e.cancelledAt;
+      const canCancel = eventCanBeCancelled(e);
 
       let desc = `${when}${who}`;
       let amt = "";
@@ -645,20 +729,33 @@ if (isFunc) {
       }
 
       const row = document.createElement("div");
-      row.className = "event-row";
+row.className = `event-row${isCancelled ? " is-cancelled" : ""}`;
 
       const leftActions = [];
-      const rightActions = [];
+const rightActions = [];
 
-      // 👁 ao lado do tipo
-      if (e.type === "SALE") {
-        leftActions.push(`<button class="event-btn" data-view="${e.id}" title="Ver detalhes">👁</button>`);
-      }
+// 👁 ao lado do tipo
+if (e.type === "SALE") {
+  leftActions.push(`
+  <button class="event-btn btn-eye" data-view="${e.id}" title="Ver detalhes">
+    <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  </button>
+`);
+}
 
-      // 🗑 só no modo admin
-      if (adminMode) {
-        rightActions.push(`<button class="event-btn danger" data-del="${e.id}" title="Excluir evento">🗑</button>`);
-      }
+// ação da direita
+if (isCancelled) {
+  rightActions.push(`<span class="event-cancel-badge">CANCELADO</span>`);
+} else if (adminMode && canCancel) {
+  rightActions.push(`
+    <button class="event-btn cancel" data-cancel="${e.id}" title="Cancelar movimento">
+      Cancelar
+    </button>
+  `);
+}
 
       row.innerHTML = `
         <div class="event-type">
@@ -669,6 +766,10 @@ if (isFunc) {
         <div class="event-amt">${amt}</div>
         <div class="event-actions">${rightActions.join("")}</div>
       `;
+
+      if (isCancelled) {
+  desc += ` • CANCELADO`;
+}
 
       $eventsList.appendChild(row);
     });
@@ -715,6 +816,8 @@ if (isFunc) {
       render();
       return;
     }
+
+
   }
 
   function wire() {
@@ -750,14 +853,14 @@ $adminDismiss?.addEventListener("click", () => {
   closeAdminModal();
 });
 
-    $btnEventsEdit.addEventListener("click", () => {
-      if (adminMode) {
-        adminMode = false;
-        render();
-        return;
-      }
-      openAdminModal();
-    });
+    $btnEventsEdit?.addEventListener("click", () => {
+  if (adminMode) {
+    adminMode = false;
+    render();
+    return;
+  }
+  openAdminModal();
+});
 
     $adminClose.addEventListener("click", closeAdminModal);
     $adminCancel.addEventListener("click", closeAdminModal);
@@ -879,7 +982,7 @@ if (document.activeElement === $adminPass) {
 
 
     // Delegação: funciona mesmo após re-render
-    $eventsList.addEventListener("click", (ev) => {
+    $eventsList.addEventListener("click", async (ev) => {
       const viewBtn = ev.target.closest("[data-view]");
       if (viewBtn) {
         ev.stopPropagation();
@@ -890,19 +993,43 @@ if (document.activeElement === $adminPass) {
         return;
       }
 
-      const delBtn = ev.target.closest("[data-del]");
-      if (delBtn) {
-        ev.stopPropagation();
-        const id = delBtn.getAttribute("data-del");
-        if (!confirm("Excluir este evento? Isso vai recalcular os totais do caixa.")) return;
+      const cancelBtn = ev.target.closest("[data-cancel]");
+if (cancelBtn) {
+  ev.stopPropagation();
 
-        const r = window.CoreCash.deleteEvent(id);
-        if (!r.ok) {
-          alert(r.reason || "Não foi possível excluir.");
-          return;
-        }
-        render();
-      }
+  const id = cancelBtn.getAttribute("data-cancel");
+
+  if (!confirm("Deseja cancelar este movimento? Essa ação não pode ser revertida.")) {
+    return;
+  }
+
+  // pega o evento antes do cancelamento, para sabermos o que sincronizar
+  const eventsAllBefore = window.CoreCash.getEvents();
+  const evtBefore = eventsAllBefore.find(x => String(x.id) === String(id));
+
+  const r = window.CoreCash.cancelEvent(id, {
+    by: getOperatorName() || "admin",
+    reason: "Cancelado manualmente no caixa"
+  });
+
+  if (!r?.ok) {
+    alert(r?.reason || "Não foi possível cancelar este movimento.");
+    return;
+  }
+
+  try {
+    // só venda gera reversão de estoque e update na tabela sales
+    if (evtBefore?.type === "SALE") {
+      await syncCancelledSaleToSupabase(evtBefore);
+    }
+  } catch (err) {
+    console.error("[Caixa] Falha ao sincronizar cancelamento no Supabase:", err);
+    alert("O movimento foi cancelado no caixa, mas houve falha ao sincronizar estoque/venda no banco.");
+  }
+
+  render();
+  return;
+}
     });
   }
 

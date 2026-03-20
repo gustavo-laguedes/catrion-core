@@ -49,6 +49,27 @@
   grid-template-columns:repeat(2, minmax(0, 1fr));
 }
 
+.three-kpis{
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(220px, .55fr);
+}
+
+.today-kpi--cancelled{
+  border: 1px solid rgba(239,68,68,.14);
+  background: rgba(255,255,255,.92);
+}
+
+.today-kpi--cancelled .today-kpi-label{
+  color: #991b1b;
+}
+
+.today-kpi--cancelled .today-kpi-value{
+  color: #b91c1c;
+}
+
+.today-kpi--cancelled .today-kpi-meta{
+  color: #b45309;
+}
+
 .today-kpi,
 .today-card{
   border-radius:28px;
@@ -481,9 +502,10 @@
 }
 
 @media (max-width: 960px){
-  .two-kpis{
-    grid-template-columns:1fr;
-  }
+  .two-kpis,
+.three-kpis{
+  grid-template-columns:1fr;
+}
 
   .chart-wrap{
     grid-template-columns:1fr;

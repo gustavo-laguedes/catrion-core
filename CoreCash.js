@@ -10,13 +10,25 @@
 // Sync Supabase (fire-and-forget)
 // =========================
 async function syncEnsureRemoteSession(session) {
+  if (!window.CashStore?.openSession) return null;
+  if (!session?.isOpen) return null;
+
+  // já temos id remoto salvo
+  if (session.remoteSessionId) return session.remoteSessionId;
+
   try {
-    if (!window.CashStore) return null;           // sem store, fica só local
-    if (!session?.isOpen) return null;
+    // 1) primeiro tenta reaproveitar uma sessão aberta já existente no Supabase
+    if (window.CashStore?.getLatestOpenSession) {
+      const existing = await window.CashStore.getLatestOpenSession();
 
-    // se já tem id remoto, ok
-    if (session.remoteSessionId) return session.remoteSessionId;
+      if (existing?.id) {
+        session.remoteSessionId = existing.id;
+        saveSession(session);
+        return session.remoteSessionId;
+      }
+    }
 
+    // 2) se não existir nenhuma aberta, cria uma nova
     const row = await window.CashStore.openSession({
       openedBy: session.openedBy || "system",
       openingCashCents: Math.round(Number(session.initialAmount || 0) * 100),
@@ -24,9 +36,31 @@ async function syncEnsureRemoteSession(session) {
     });
 
     session.remoteSessionId = row?.id || null;
-    saveSession(session); // salva de novo no LS com o ID remoto
+    saveSession(session);
     return session.remoteSessionId;
   } catch (e) {
+    // 3) se bater conflito de sessão aberta duplicada, tenta buscar a já existente
+    const msg = String(e?.message || "");
+    const code = String(e?.code || "");
+
+    const isDuplicateOpenSession =
+      code === "23505" ||
+      msg.includes("unique_open_cash_per_tenant");
+
+    if (isDuplicateOpenSession && window.CashStore?.getLatestOpenSession) {
+      try {
+        const existing = await window.CashStore.getLatestOpenSession();
+
+        if (existing?.id) {
+          session.remoteSessionId = existing.id;
+          saveSession(session);
+          return session.remoteSessionId;
+        }
+      } catch (lookupErr) {
+        console.warn("[CoreCash] Falha ao reaproveitar sessão aberta no Supabase:", lookupErr);
+      }
+    }
+
     console.warn("[CoreCash] Falha ao abrir sessão no Supabase (mantendo local):", e);
     return null;
   }
@@ -222,6 +256,18 @@ if (!prod) { skipped++; continue; }
   );
 }
 
+function isTodayISO(iso) {
+  return isSameDayBR(iso, new Date().toISOString());
+}
+
+function canCancelEvent(evt) {
+  if (!evt || evt.cancelledAt) return false;
+
+  if (isTodayISO(evt.at)) return true;
+
+  return evt.type === "SALE";
+}
+
 
   function uid(prefix = "evt") {
     return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -350,6 +396,7 @@ function loadEvents() {
     };
 
     (events || []).forEach(e => {
+      if (e.cancelledAt) return;
       if (e.type === "SALE") {
         out.salesCount += 1;
 
@@ -402,15 +449,15 @@ function getTodayEvents() {
 
   function rebuildSessionFromEvents(events){
   const list = Array.isArray(events) ? [...events] : [];
+  const activeEvents = list.filter(e => !e.cancelledAt);
 
-  // se não tem nenhum OPEN, não existe sessão
-  const opens = list.filter(e => e.type === "OPEN");
+  // se não tem nenhum OPEN ativo, não existe sessão
+  const opens = activeEvents.filter(e => e.type === "OPEN");
   if (!opens.length) {
     saveSession(null);
     return null;
   }
 
-  // evento mais recente pelo timestamp (não confia só na ordem do array)
   const mostRecent = (arr) =>
     arr.reduce((best, cur) => {
       const tb = best ? new Date(best.at).getTime() : -Infinity;
@@ -420,9 +467,10 @@ function getTodayEvents() {
 
   const lastOpen = mostRecent(opens);
 
-  // pega o CLOSE mais recente que aconteceu DEPOIS desse OPEN
   const openAt = new Date(lastOpen.at).getTime();
-  const closesAfterOpen = list.filter(e => e.type === "CLOSE" && new Date(e.at).getTime() >= openAt);
+  const closesAfterOpen = activeEvents.filter(
+    e => e.type === "CLOSE" && new Date(e.at).getTime() >= openAt
+  );
   const lastClose = closesAfterOpen.length ? mostRecent(closesAfterOpen) : null;
 
   const isOpen = !lastClose;
@@ -449,24 +497,38 @@ function getTodayEvents() {
     getSession() { return loadSession(); },
     isOpen() { return !!ensureOpenSession(); },
     getEvents() { return loadEvents(); },
+    canCancelEvent(event){
+  return canCancelEvent(event);
+},
 
-    deleteEvent(eventId){
+    cancelEvent(eventId, { by = "system", reason = "Cancelado manualmente" } = {}){
   const events = loadEvents();
   const idx = events.findIndex(e => String(e.id) === String(eventId));
   if (idx < 0) return { ok:false, reason:"Evento não encontrado." };
 
-  const removed = events.splice(idx, 1)[0];
-  saveEvents(events);
+  const evt = events[idx];
 
-  // ✅ NOVO: se apagou uma venda, devolve estoque
-  let stockRestore = null;
-  if (removed?.type === "SALE") {
-    stockRestore = restoreStockFromSaleEvent(removed);
+  if (!canCancelEvent(evt)) {
+    return { ok:false, reason:"Este movimento não pode mais ser cancelado." };
   }
 
+  if (evt.cancelledAt) {
+    return { ok:false, reason:"Este movimento já está cancelado." };
+  }
+
+  evt.cancelledAt = nowISO();
+  evt.cancelledBy = by;
+  evt.cancelReason = reason || "Cancelado manualmente";
+
+  let stockRestore = null;
+  if (evt?.type === "SALE") {
+    stockRestore = restoreStockFromSaleEvent(evt);
+  }
+
+  saveEvents(events);
   rebuildSessionFromEvents(events);
 
-  return { ok:true, removed, stockRestore };
+  return { ok:true, event: evt, stockRestore };
 },
 
 
