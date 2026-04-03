@@ -920,9 +920,16 @@ async function saveNewCustomer(){
     selectCustomer(created);
     closeCustomerModal();
   }catch(err){
-    console.error("[VENDA] Erro ao salvar cliente:", err);
-    alert("Não foi possível salvar o cliente.");
-  }
+  console.error("[VENDA] Erro ao salvar cliente:", err);
+
+  const msg =
+    err?.message ||
+    err?.details ||
+    err?.hint ||
+    "Não foi possível salvar o cliente.";
+
+  alert(msg);
+}
 }
 
 

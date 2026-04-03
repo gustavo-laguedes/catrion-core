@@ -33,13 +33,14 @@ hello.textContent = `Olá, ${nameLabel} (${roleLabel})`;
 btnLogout.style.display = "inline-flex";
 
     btnLogout.onclick = async () => {
-      try {
-        window.CoreAudit?.log?.("LOGOUT");
-        await window.CoreAuth.logout(); // ✅ agora é async
-      } finally {
-        location.reload();
-      }
-    };
+  try {
+    window.CoreAudit?.log?.("LOGOUT");
+    await window.CoreAuth.logout();
+  } finally {
+    const portalLogin = "https://catrion.com.br/app/index.html#/login";
+    window.location.href = portalLogin;
+  }
+};
   }
 
   window.CoreUI = { updateTopbar };

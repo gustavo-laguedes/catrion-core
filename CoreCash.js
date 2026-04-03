@@ -2,8 +2,22 @@
    Caixa (localStorage) - sessão + eventos + resumo (inclui lucro preparado)
 */
 (function (global) {
-  const KEY_SESSION = "core.cash.session.v1";
-  const KEY_EVENTS  = "core.cash.events.v1";
+ function getCashTenantKey(base) {
+  const tenantId =
+    window.CatrionTenant?.getActiveTenantId?.() ||
+    localStorage.getItem("catrion_active_tenant") ||
+    "default";
+
+  return `${base}.${tenantId}`;
+}
+
+function getSessionKey() {
+  return getCashTenantKey("core.cash.session.v1");
+}
+
+function getEventsKey() {
+  return getCashTenantKey("core.cash.events.v1");
+}
   const MAX_EVENTS = 20000; // histórico grande pro modo local-dev (ajuste se quiser)
 
   // =========================
@@ -278,25 +292,25 @@ function canCancelEvent(evt) {
   }
 
   function loadSession() {
-    const raw = localStorage.getItem(KEY_SESSION);
-    return raw ? safeParse(raw, null) : null;
-  }
+  const raw = localStorage.getItem(getSessionKey());
+  return raw ? safeParse(raw, null) : null;
+}
 
   function saveSession(session) {
   if (!session) {
-    localStorage.removeItem(KEY_SESSION);
+    localStorage.removeItem(getSessionKey());
     return;
   }
 
   try {
-    localStorage.setItem(KEY_SESSION, JSON.stringify(session));
+    localStorage.setItem(getSessionKey(), JSON.stringify(session));
   } catch (e) {
     // se falhar, pelo menos não trava o sistema
   }
-} // ✅ FECHOU saveSession aqui
+}
 
 function loadEvents() {
-  const raw = localStorage.getItem(KEY_EVENTS);
+  const raw = localStorage.getItem(getEventsKey());
   const arr = raw ? safeParse(raw, []) : [];
   return Array.isArray(arr) ? arr : [];
 }
@@ -312,9 +326,9 @@ function loadEvents() {
 
   // fusível: tenta salvar, se estourar quota corta e tenta de novo
   const trySave = (arr) => {
-    localStorage.setItem(KEY_EVENTS, JSON.stringify(arr));
-    return true;
-  };
+  localStorage.setItem(getEventsKey(), JSON.stringify(arr));
+  return true;
+};
 
   // tentativa 1: salva tudo (já limitado)
   try {
@@ -492,7 +506,10 @@ function getTodayEvents() {
 
 
   const CoreCash = {
-    keys: { KEY_SESSION, KEY_EVENTS },
+  keys: {
+    getSessionKey,
+    getEventsKey
+  },
 
     getSession() { return loadSession(); },
     isOpen() { return !!ensureOpenSession(); },

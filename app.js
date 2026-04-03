@@ -9,8 +9,9 @@ const router = window.CoreRouter.createRouter({ mountEl: app });
       const current = window.CoreAuth?.getCurrentUser?.();
 if (current) {
   const url = new URL(window.location.href);
-  const maybeName = url.searchParams.get("user_name") || "";
-  if (maybeName && !current.name) {
+  const maybeName = String(url.searchParams.get("user_name") || "").trim();
+
+  if (maybeName && (!current.name || current.name === "usuário")) {
     current.name = maybeName;
     localStorage.setItem("core_session_v2", JSON.stringify(current));
   }
@@ -140,7 +141,16 @@ window.CustomersStore = (function () {
     if (limit) query = query.limit(limit);
 
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) {
+  console.error("[CustomersStore.list] erro Supabase:", {
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+    code: error.code,
+    tenantId
+  });
+  throw error;
+}
 
     return (data || []).map(mapRow);
   }
@@ -159,13 +169,31 @@ window.CustomersStore = (function () {
     };
 
     const { data, error } = await sb
-      .from("customers")
-      .insert(row)
-      .select("*")
-      .single();
+  .from("customers")
+  .insert(row)
+  .select("*")
+  .single();
 
-    if (error) throw error;
-    return mapRow(data);
+if (error) {
+  console.error("[CustomersStore.create] erro Supabase:", {
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+    code: error.code,
+    row
+  });
+
+  const detailedMessage = [
+    error.code ? `[${error.code}]` : "",
+    error.message || "",
+    error.details || "",
+    error.hint || ""
+  ].filter(Boolean).join(" ");
+
+  throw new Error(detailedMessage || "Não foi possível salvar o cliente.");
+}
+
+return mapRow(data);
   }
 
   async function update(id, payload = {}) {
@@ -190,7 +218,17 @@ window.CustomersStore = (function () {
       .select("*")
       .single();
 
-    if (error) throw error;
+   if (error) {
+  console.error("[CustomersStore.remove] erro Supabase:", {
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+    code: error.code,
+    id,
+    tenantId
+  });
+  throw error;
+}
     return mapRow(data);
   }
 
@@ -347,7 +385,25 @@ window.MachinesStore = (function () {
       .select("*")
       .single();
 
-    if (error) throw error;
+    if (error) {
+  console.error("[CustomersStore.update] erro Supabase:", {
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+    code: error.code,
+    id,
+    row
+  });
+
+  const detailedMessage = [
+    error.code ? `[${error.code}]` : "",
+    error.message || "",
+    error.details || "",
+    error.hint || ""
+  ].filter(Boolean).join(" ");
+
+  throw new Error(detailedMessage || "Não foi possível atualizar o cliente.");
+}
     return mapRow(data);
   }
 
@@ -423,7 +479,16 @@ window.APCategoriesStore = (function () {
     if (limit) query = query.limit(limit);
 
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) {
+  console.error("[CustomersStore.list] erro Supabase:", {
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+    code: error.code,
+    tenantId
+  });
+  throw error;
+}
     return (data || []).map(mapRow);
   }
 
@@ -610,7 +675,7 @@ window.APPayablesStore = (function () {
       .eq("id", id)
       .eq("tenant_id", tenantId);
 
-    if (error) throw error;
+    
     return true;
   }
 
