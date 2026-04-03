@@ -219,15 +219,25 @@ return mapRow(data);
       .single();
 
    if (error) {
-  console.error("[CustomersStore.remove] erro Supabase:", {
+  console.error("[CustomersStore.update] erro Supabase:", {
     message: error.message,
     details: error.details,
     hint: error.hint,
     code: error.code,
     id,
-    tenantId
+    tenantId,
+    row
   });
-  throw error;
+
+  const detailedMessage = [
+    error.code ? `[${error.code}]` : "",
+    error.message || "",
+    error.details || "",
+    error.hint || ""
+  ].filter(Boolean).join(" ");
+
+  throw new Error(detailedMessage || "Não foi possível atualizar o cliente.");
+}
 }
     return mapRow(data);
   }
@@ -244,7 +254,25 @@ return mapRow(data);
       .eq("id", id)
       .eq("tenant_id", tenantId);
 
-    if (error) throw error;
+    if (error) {
+  console.error("[CustomersStore.remove] erro Supabase:", {
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+    code: error.code,
+    id,
+    tenantId
+  });
+
+  const detailedMessage = [
+    error.code ? `[${error.code}]` : "",
+    error.message || "",
+    error.details || "",
+    error.hint || ""
+  ].filter(Boolean).join(" ");
+
+  throw new Error(detailedMessage || "Não foi possível excluir o cliente.");
+}
     return true;
   }
 
@@ -386,13 +414,14 @@ window.MachinesStore = (function () {
       .single();
 
     if (error) {
-  console.error("[CustomersStore.update] erro Supabase:", {
+  console.error("[MachinesStore.update] erro Supabase:", {
     message: error.message,
     details: error.details,
     hint: error.hint,
     code: error.code,
     id,
-    row
+    row,
+    tenantId
   });
 
   const detailedMessage = [
@@ -402,7 +431,7 @@ window.MachinesStore = (function () {
     error.hint || ""
   ].filter(Boolean).join(" ");
 
-  throw new Error(detailedMessage || "Não foi possível atualizar o cliente.");
+  throw new Error(detailedMessage || "Não foi possível atualizar a maquininha.");
 }
     return mapRow(data);
   }
@@ -480,14 +509,22 @@ window.APCategoriesStore = (function () {
 
     const { data, error } = await query;
     if (error) {
-  console.error("[CustomersStore.list] erro Supabase:", {
+  console.error("[APCategoriesStore.list] erro Supabase:", {
     message: error.message,
     details: error.details,
     hint: error.hint,
     code: error.code,
     tenantId
   });
-  throw error;
+
+  const detailedMessage = [
+    error.code ? `[${error.code}]` : "",
+    error.message || "",
+    error.details || "",
+    error.hint || ""
+  ].filter(Boolean).join(" ");
+
+  throw new Error(detailedMessage || "Não foi possível carregar as categorias.");
 }
     return (data || []).map(mapRow);
   }
@@ -519,13 +556,32 @@ window.APCategoriesStore = (function () {
     if (!id) throw new Error("ID da categoria é obrigatório.");
 
     const { error } = await sb
-      .from("ap_categories")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", tenantId);
+  .from("ap_payables")
+  .delete()
+  .eq("id", id)
+  .eq("tenant_id", tenantId);
 
-    if (error) throw error;
-    return true;
+if (error) {
+  console.error("[APPayablesStore.remove] erro Supabase:", {
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+    code: error.code,
+    id,
+    tenantId
+  });
+
+  const detailedMessage = [
+    error.code ? `[${error.code}]` : "",
+    error.message || "",
+    error.details || "",
+    error.hint || ""
+  ].filter(Boolean).join(" ");
+
+  throw new Error(detailedMessage || "Não foi possível excluir a conta.");
+}
+
+return true;
   }
 
   return { list, create, remove };
