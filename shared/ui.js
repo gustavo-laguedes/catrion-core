@@ -15,9 +15,22 @@
       return;
     }
 
-    const label = session.email || "usuário";
-    hello.textContent = `Olá, ${label} (${session.role})`;
-    btnLogout.style.display = "inline-flex";
+    const roleLabelMap = {
+  DEV: "DEV",
+  ADMIN: "ADMIN",
+  OPER: "OPER",
+  VISU: "VISU"
+};
+
+const nameLabel =
+  session.name ||
+  session.email ||
+  "usuário";
+
+const roleLabel = roleLabelMap[String(session.role || "").toUpperCase()] || "OPER";
+
+hello.textContent = `Olá, ${nameLabel} (${roleLabel})`;
+btnLogout.style.display = "inline-flex";
 
     btnLogout.onclick = async () => {
       try {

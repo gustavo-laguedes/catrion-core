@@ -6,6 +6,15 @@ const router = window.CoreRouter.createRouter({ mountEl: app });
   try {
     if (window.CoreAuth?.bootstrap) {
       const result = await window.CoreAuth.bootstrap();
+      const current = window.CoreAuth?.getCurrentUser?.();
+if (current) {
+  const url = new URL(window.location.href);
+  const maybeName = url.searchParams.get("user_name") || "";
+  if (maybeName && !current.name) {
+    current.name = maybeName;
+    localStorage.setItem("core_session_v2", JSON.stringify(current));
+  }
+}
       console.log("[CORE] bootstrap result:", result);
       console.log("[CORE] current user after bootstrap:", window.CoreAuth?.getCurrentUser?.());
       console.log("[CORE] active tenant after bootstrap:", window.CoreAuth?.getActiveTenantId?.());

@@ -7,19 +7,21 @@
   const roleAccess = {
   DEV:   ["home", "venda", "produtos", "caixa", "relatorios"],
   ADMIN: ["home", "venda", "produtos", "caixa", "relatorios"],
-  FUNC:  ["home", "venda", "produtos", "caixa"],
+  OPER:  ["home", "venda", "produtos", "caixa"],
+  VISU:  ["home", "relatorios"],
 };
 
   function normalizeRole(role) {
   const raw = String(role || "").toUpperCase().trim();
 
-  if (raw === "DEV" || raw === "ADMIN" || raw === "FUNC") return raw;
+  if (raw === "DEV" || raw === "ADMIN" || raw === "OPER" || raw === "VISU") return raw;
 
   if (raw === "CORE_ADMIN") return "ADMIN";
-  if (raw === "CORE_OPERADOR") return "FUNC";
-  if (raw === "CORE_VISUALIZADOR") return "FUNC";
+  if (raw === "CORE_OPERADOR") return "OPER";
+  if (raw === "CORE_VISUALIZADOR") return "VISU";
+  if (raw === "FUNC") return "OPER";
 
-  return "FUNC";
+  return "OPER";
 }
 
   function getCachedSession() {
@@ -87,6 +89,7 @@ function setActiveTenantId(tenantId) {
 
   return {
     tenantId: url.searchParams.get("tenant") || "",
+    tenantSlug: url.searchParams.get("tenant_slug") || "",
     tenantName: url.searchParams.get("tenant_name") || "",
     module: url.searchParams.get("module") || "",
     role: url.searchParams.get("role") || "",
@@ -104,9 +107,11 @@ function buildCoreSessionFromUrlContext(ctx) {
   return {
     userId: "portal-user",
     email: null,
+    name: "usuário",
     role: normalizeRole(ctx.role),
     roleRaw: ctx.role || "",
     tenantId: ctx.tenantId,
+    tenantSlug: ctx.tenantSlug || "",
     tenantName: ctx.tenantName || "",
     module: ctx.module || "core",
     access: ctx.access || "",
@@ -124,10 +129,18 @@ function buildCoreSessionFromUrlContext(ctx) {
   const urlSession = buildCoreSessionFromUrlContext(urlCtx);
 
   if (urlSession?.tenantId) {
-    setActiveTenantId(urlSession.tenantId);
-    setCachedSession(urlSession);
-    return { ok: true, session: urlSession };
+  setActiveTenantId(urlSession.tenantId);
+
+  if (window.CatrionTenant?.setActiveTenantMeta) {
+    window.CatrionTenant.setActiveTenantMeta({
+      tenantSlug: urlSession.tenantSlug,
+      tenantName: urlSession.tenantName
+    });
   }
+
+  setCachedSession(urlSession);
+  return { ok: true, session: urlSession };
+}
 
   // 2) Se não veio da URL, tenta sessão do Supabase
   const { data: sessionData, error: sessErr } = await sb.auth.getSession();
@@ -182,16 +195,19 @@ function buildCoreSessionFromUrlContext(ctx) {
 }
 
   async function logout() {
-    const sb = requireSb();
-    try {
-      await sb.auth.signOut();
-    } catch {
-      // mesmo se falhar, limpa cache local
-    }
-    clearCachedSession();
-    // opcional: manter tenant salvo, ou limpar. Eu prefiro manter pra UX.
-    // setActiveTenantId(null);
+  const sb = requireSb();
+  try {
+    await sb.auth.signOut();
+  } catch {
+    // ignora, porque o Core pode estar sem auth local válida
   }
+
+  clearCachedSession();
+
+  if (window.CatrionTenant?.clearActiveTenantId) {
+    window.CatrionTenant.clearActiveTenantId();
+  }
+}
 
   function isLoggedIn() {
     return !!getCachedSession();
@@ -227,19 +243,18 @@ function buildCoreSessionFromUrlContext(ctx) {
 
   // Expondo para o resto do Core
   window.CoreAuth = {
-    // auth
-    login,
-    logout,
-    bootstrap,
+  login,
+  logout,
+  bootstrap,
+  isLoggedIn,
+  canAccess,
+  getCurrentUser,
 
-    // estado
-    isLoggedIn,
-    canAccess,
-    getCurrentUser,
+  getActiveTenantId,
+  getCurrentTenantId: getActiveTenantId,
+  getTenantId: getActiveTenantId,
 
-    // tenant
-    getActiveTenantId,
-    setActiveTenantId,
-    requireTenantId,
-  };
+  setActiveTenantId,
+  requireTenantId,
+};
 })();
