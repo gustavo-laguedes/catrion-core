@@ -9,18 +9,26 @@
   }
 
   async function requireOpenCashSessionId() {
-    // 1) Preferência: sessão atual do CoreCash (já sincronizada)
-    const s = window.CoreCash?.getSession?.();
-    if (s?.isOpen && s?.remoteSessionId) return s.remoteSessionId;
+  const s = window.CoreCash?.getSession?.();
 
-    // 2) Fallback: busca no Supabase (última sessão aberta do tenant)
-    if (window.CashStore?.getLatestOpenSession) {
-      const open = await window.CashStore.getLatestOpenSession();
-      if (open?.id) return open.id;
+  // 1) Se existe caixa local aberto, tenta garantir a sessão remota agora
+  if (s?.isOpen) {
+    if (s.remoteSessionId) return s.remoteSessionId;
+
+    if (window.CoreCash?.ensureRemoteSession) {
+      const ensuredId = await window.CoreCash.ensureRemoteSession();
+      if (ensuredId) return ensuredId;
     }
-
-    throw new Error("Caixa fechado ou sessão não sincronizada. Abra o caixa para finalizar a venda.");
   }
+
+  // 2) Fallback: busca no Supabase a última sessão aberta do tenant
+  if (window.CashStore?.getLatestOpenSession) {
+    const open = await window.CashStore.getLatestOpenSession();
+    if (open?.id) return open.id;
+  }
+
+  throw new Error("Caixa fechado ou sessão não sincronizada. Abra o caixa para finalizar a venda.");
+}
 
   function toCents(v) {
     const n = Number(v || 0);

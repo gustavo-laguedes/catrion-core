@@ -511,7 +511,13 @@ function getTodayEvents() {
     getEventsKey
   },
 
-    getSession() { return loadSession(); },
+  async ensureRemoteSession() {
+    const session = loadSession();
+    if (!session?.isOpen) return null;
+    return await syncEnsureRemoteSession(session);
+  },
+
+  getSession() { return loadSession(); },
     isOpen() { return !!ensureOpenSession(); },
     getEvents() { return loadEvents(); },
     canCancelEvent(event){
