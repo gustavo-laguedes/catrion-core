@@ -238,8 +238,8 @@ return mapRow(data);
 
   throw new Error(detailedMessage || "Não foi possível atualizar o cliente.");
 }
-}
-    return mapRow(data);
+
+return mapRow(data);
   }
 
   async function remove(id) {
@@ -550,39 +550,39 @@ window.APCategoriesStore = (function () {
   }
 
   async function remove(id) {
-    const sb = requireSb();
-    const tenantId = getTenantId();
-    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
-    if (!id) throw new Error("ID da categoria é obrigatório.");
+  const sb = requireSb();
+  const tenantId = getTenantId();
+  if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+  if (!id) throw new Error("ID da categoria é obrigatório.");
 
-    const { error } = await sb
-  .from("ap_payables")
-  .delete()
-  .eq("id", id)
-  .eq("tenant_id", tenantId);
+  const { error } = await sb
+    .from("ap_categories")
+    .delete()
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
 
-if (error) {
-  console.error("[APPayablesStore.remove] erro Supabase:", {
-    message: error.message,
-    details: error.details,
-    hint: error.hint,
-    code: error.code,
-    id,
-    tenantId
-  });
+  if (error) {
+    console.error("[APCategoriesStore.remove] erro Supabase:", {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+      id,
+      tenantId
+    });
 
-  const detailedMessage = [
-    error.code ? `[${error.code}]` : "",
-    error.message || "",
-    error.details || "",
-    error.hint || ""
-  ].filter(Boolean).join(" ");
+    const detailedMessage = [
+      error.code ? `[${error.code}]` : "",
+      error.message || "",
+      error.details || "",
+      error.hint || ""
+    ].filter(Boolean).join(" ");
 
-  throw new Error(detailedMessage || "Não foi possível excluir a conta.");
-}
-
-return true;
+    throw new Error(detailedMessage || "Não foi possível excluir a categoria.");
   }
+
+  return true;
+}
 
   return { list, create, remove };
 })();
@@ -685,55 +685,75 @@ window.APPayablesStore = (function () {
   }
 
   async function update(id, payload = {}) {
-    const sb = requireSb();
-    const tenantId = getTenantId();
-    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
-    if (!id) throw new Error("ID da conta é obrigatório.");
+  const sb = requireSb();
+  const tenantId = getTenantId();
+  if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+  if (!id) throw new Error("ID da conta é obrigatório.");
 
-    const row = {
-      title: String(payload.title || "").trim(),
-      category_id: payload.categoryId || null,
-      category_name: String(payload.category || "").trim() || null,
-      supplier: String(payload.supplier || "").trim() || null,
-      amount: Number(payload.amount || 0),
-      due_date: payload.dueDate || null,
-      status: String(payload.status || "pending"),
-      paid_at: payload.paidAt || null,
-      paid_method: String(payload.paidMethod || "").trim() || null,
-      notes: String(payload.notes || "").trim() || null,
-      group_id: String(payload.groupId || "").trim() || null,
-      installment: payload.installment != null ? Number(payload.installment) : null,
-      installments: payload.installments != null ? Number(payload.installments) : null,
-      updated_at: new Date().toISOString()
-    };
+  const row = {
+    title: String(payload.title || "").trim(),
+    category_id: payload.categoryId || null,
+    category_name: String(payload.category || "").trim() || null,
+    supplier: String(payload.supplier || "").trim() || null,
+    amount: Number(payload.amount || 0),
+    due_date: payload.dueDate || null,
+    status: String(payload.status || "pending"),
+    paid_at: payload.paidAt || null,
+    paid_method: String(payload.paidMethod || "").trim() || null,
+    notes: String(payload.notes || "").trim() || null,
+    group_id: String(payload.groupId || "").trim() || null,
+    installment: payload.installment != null ? Number(payload.installment) : null,
+    installments: payload.installments != null ? Number(payload.installments) : null,
+    updated_at: new Date().toISOString()
+  };
 
-    const { data, error } = await sb
-      .from("ap_payables")
-      .update(row)
-      .eq("id", id)
-      .eq("tenant_id", tenantId)
-      .select("*")
-      .single();
+  const { data, error } = await sb
+    .from("ap_payables")
+    .update(row)
+    .eq("id", id)
+    .eq("tenant_id", tenantId)
+    .select("*")
+    .single();
 
-    if (error) throw error;
-    return mapRow(data);
-  }
+  if (error) throw error;
+
+  return mapRow(data);
+}
 
   async function remove(id) {
-    const sb = requireSb();
-    const tenantId = getTenantId();
-    if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
-    if (!id) throw new Error("ID da conta é obrigatório.");
+  const sb = requireSb();
+  const tenantId = getTenantId();
+  if (!tenantId) throw new Error("tenant_id não encontrado na sessão.");
+  if (!id) throw new Error("ID da conta é obrigatório.");
 
-    const { error } = await sb
-      .from("ap_payables")
-      .delete()
-      .eq("id", id)
-      .eq("tenant_id", tenantId);
+  const { error } = await sb
+    .from("ap_payables")
+    .delete()
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
 
-    
-    return true;
+  if (error) {
+    console.error("[APPayablesStore.remove] erro Supabase:", {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code,
+      id,
+      tenantId
+    });
+
+    const detailedMessage = [
+      error.code ? `[${error.code}]` : "",
+      error.message || "",
+      error.details || "",
+      error.hint || ""
+    ].filter(Boolean).join(" ");
+
+    throw new Error(detailedMessage || "Não foi possível excluir a conta.");
   }
+
+  return true;
+}
 
   return { list, create, update, remove };
 })();
