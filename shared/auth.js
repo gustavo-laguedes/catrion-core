@@ -11,10 +11,16 @@
 };
 
   function normalizeRole(role) {
-    const r = String(role || "FUNC").toUpperCase().trim();
-    if (r === "DEV" || r === "ADMIN" || r === "FUNC") return r;
-    return "FUNC";
-  }
+  const raw = String(role || "").toUpperCase().trim();
+
+  if (raw === "DEV" || raw === "ADMIN" || raw === "FUNC") return raw;
+
+  if (raw === "CORE_ADMIN") return "ADMIN";
+  if (raw === "CORE_OPERADOR") return "FUNC";
+  if (raw === "CORE_VISUALIZADOR") return "FUNC";
+
+  return "FUNC";
+}
 
   function getCachedSession() {
     try { return JSON.parse(localStorage.getItem(SESSION_KEY)) || null; }
@@ -76,54 +82,97 @@ function setActiveTenantId(tenantId) {
     return normalizeRole(memberships[0]?.role || "FUNC");
   }
 
+  function getUrlContext() {
+  const url = new URL(window.location.href);
+
+  return {
+    tenantId: url.searchParams.get("tenant") || "",
+    tenantName: url.searchParams.get("tenant_name") || "",
+    module: url.searchParams.get("module") || "",
+    role: url.searchParams.get("role") || "",
+    access: url.searchParams.get("access") || "",
+    permissions: String(url.searchParams.get("permissions") || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  };
+}
+
+function buildCoreSessionFromUrlContext(ctx) {
+  if (!ctx?.tenantId) return null;
+
+  return {
+    userId: "portal-user",
+    email: null,
+    role: normalizeRole(ctx.role),
+    roleRaw: ctx.role || "",
+    tenantId: ctx.tenantId,
+    tenantName: ctx.tenantName || "",
+    module: ctx.module || "core",
+    access: ctx.access || "",
+    permissions: Array.isArray(ctx.permissions) ? ctx.permissions : [],
+    ts: Date.now(),
+    source: "portal_url"
+  };
+}
+
   async function bootstrap() {
-    // Reconstrói o cache do Core se o Supabase tiver sessão
-    const sb = requireSb();
+  const sb = requireSb();
 
-    const { data: sessionData, error: sessErr } = await sb.auth.getSession();
-    if (sessErr) {
-      clearCachedSession();
-      return { ok: false, message: "Falha ao ler sessão do Supabase.", error: sessErr };
-    }
+  // 1) Primeiro: tenta contexto vindo da URL do portal
+  const urlCtx = getUrlContext();
+  const urlSession = buildCoreSessionFromUrlContext(urlCtx);
 
-    const supaSession = sessionData?.session || null;
-    if (!supaSession?.user?.id) {
-      clearCachedSession();
-      return { ok: false, message: "Sem sessão." };
-    }
-
-    const user = supaSession.user;
-    const memberships = await fetchMembershipsForUser(user.id);
-
-    if (!memberships.length) {
-      // usuário existe, mas não pertence a nenhum tenant
-      clearCachedSession();
-      return { ok: false, message: "Usuário sem empresa vinculada (memberships vazia)." };
-    }
-
-    const tenantId = pickTenant(memberships);
-    const role = pickRole(memberships);
-
-    if (!tenantId) {
-      clearCachedSession();
-      return { ok: false, message: "Não foi possível determinar tenant ativo." };
-    }
-
-    // grava tenant ativo (para seleção futura)
-    setActiveTenantId(tenantId);
-
-    // grava cache do Core (para router/RBAC síncrono)
-    const coreSession = {
-      userId: user.id,
-      email: user.email || null,
-      role,
-      tenantId,
-      ts: Date.now(),
-    };
-
-    setCachedSession(coreSession);
-    return { ok: true, session: coreSession };
+  if (urlSession?.tenantId) {
+    setActiveTenantId(urlSession.tenantId);
+    setCachedSession(urlSession);
+    return { ok: true, session: urlSession };
   }
+
+  // 2) Se não veio da URL, tenta sessão do Supabase
+  const { data: sessionData, error: sessErr } = await sb.auth.getSession();
+
+  if (sessErr) {
+    clearCachedSession();
+    return { ok: false, message: "Falha ao ler sessão do Supabase.", error: sessErr };
+  }
+
+  const supaSession = sessionData?.session || null;
+  if (!supaSession?.user?.id) {
+    clearCachedSession();
+    return { ok: false, message: "Sem sessão." };
+  }
+
+  const user = supaSession.user;
+  const memberships = await fetchMembershipsForUser(user.id);
+
+  if (!memberships.length) {
+    clearCachedSession();
+    return { ok: false, message: "Usuário sem empresa vinculada (memberships vazia)." };
+  }
+
+  const tenantId = pickTenant(memberships);
+  const role = pickRole(memberships);
+
+  if (!tenantId) {
+    clearCachedSession();
+    return { ok: false, message: "Não foi possível determinar tenant ativo." };
+  }
+
+  setActiveTenantId(tenantId);
+
+  const coreSession = {
+    userId: user.id,
+    email: user.email || null,
+    role,
+    tenantId,
+    ts: Date.now(),
+    source: "supabase_session"
+  };
+
+  setCachedSession(coreSession);
+  return { ok: true, session: coreSession };
+}
 
   async function login() {
   return {
@@ -151,6 +200,11 @@ function setActiveTenantId(tenantId) {
   function canAccess(pageName) {
   const s = getCachedSession();
   if (!s) return false;
+
+  if (Array.isArray(s.permissions) && s.permissions.length) {
+    const permissionKey = `core.${pageName}.access`;
+    return s.permissions.includes(permissionKey);
+  }
 
   const allowed = roleAccess[s.role] || [];
   return allowed.includes(pageName);

@@ -5,7 +5,10 @@ const router = window.CoreRouter.createRouter({ mountEl: app });
 (async () => {
   try {
     if (window.CoreAuth?.bootstrap) {
-      await window.CoreAuth.bootstrap();
+      const result = await window.CoreAuth.bootstrap();
+      console.log("[CORE] bootstrap result:", result);
+      console.log("[CORE] current user after bootstrap:", window.CoreAuth?.getCurrentUser?.());
+      console.log("[CORE] active tenant after bootstrap:", window.CoreAuth?.getActiveTenantId?.());
     }
   } catch (e) {
     console.warn("CoreAuth.bootstrap falhou:", e);

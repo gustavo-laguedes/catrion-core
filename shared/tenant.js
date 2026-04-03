@@ -32,14 +32,10 @@
   async function ensureActiveTenant() {
     const existing = getActiveTenantId();
 if (existing) {
-  // Confere se esse tenant ainda existe nas memberships do user
-  if (!window.sb) throw new Error("Supabase client (window.sb) não inicializado.");
-
-  const { data: userRes, error: userErr } = await window.sb.auth.getUser();
-  if (userErr) throw userErr;
-
-  const user = userRes?.user;
-  if (!user) throw new Error("Usuário não autenticado.");
+  // Se já existe tenant salvo, usa ele direto.
+  // No fluxo atual do Core via Portal, não dependemos de sessão Auth local.
+  return existing;
+}
 
   const { data: check, error: checkErr } = await window.sb
     .from("memberships")
@@ -56,18 +52,15 @@ if (existing) {
   clearActiveTenantId();
 }
 
-    if (!window.sb) throw new Error("Supabase client (window.sb) não inicializado.");
+    // fallback: tenta tenant vindo da URL
+const url = new URL(window.location.href);
+const tenantFromUrl = url.searchParams.get("tenant");
 
-    const { data: userRes, error: userErr } = await window.sb.auth.getUser();
-    if (userErr) throw userErr;
+if (tenantFromUrl) {
+  return setActiveTenantId(tenantFromUrl);
+}
 
-    const user = userRes?.user;
-    if (!user) throw new Error("Usuário não autenticado.");
-
-    const { data, error } = await window.sb
-      .from("memberships")
-      .select("tenant_id")
-      .eq("user_id", user.id);
+throw new Error("Tenant não definido.");
 
     if (error) throw error;
 

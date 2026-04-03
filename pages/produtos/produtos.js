@@ -31,19 +31,22 @@ function saveProducts(list){
 // =========================
 const CAT_SEP = " • ";
 
-const TAX_KEYS = {
-  cat:  "core.products.tax.cat.v1",
-  sub1: "core.products.tax.sub1.v1",
-  sub2: "core.products.tax.sub2.v1",
-  sub3: "core.products.tax.sub3.v1",
-};
+function getTaxStorageKey(levelKey) {
+  const tenantId =
+    window.CoreAuth?.requireTenantId?.() ||
+    localStorage.getItem("catrion_active_tenant") ||
+    "default";
+
+  return `core.products.tax.${tenantId}.${levelKey}.v1`;
+}
 
 
 function cleanStr(v){ return String(v ?? "").trim(); }
 
 function loadTax(levelKey){
-  const key = TAX_KEYS[levelKey];
+  const key = getTaxStorageKey(levelKey);
   if (!key) return [];
+
   try{
     const x = JSON.parse(localStorage.getItem(key) || "[]");
     const list = Array.isArray(x) ? x.map(cleanStr).filter(Boolean) : [];
@@ -54,8 +57,9 @@ function loadTax(levelKey){
 }
 
 function saveTax(levelKey, list){
-  const key = TAX_KEYS[levelKey];
+  const key = getTaxStorageKey(levelKey);
   if (!key) return;
+
   const clean = (list || []).map(cleanStr).filter(Boolean);
   const uniq = [...new Set(clean)];
   localStorage.setItem(key, JSON.stringify(uniq));
